@@ -1,0 +1,27 @@
+{
+
+   "left":		"L_",
+   "right":		"R_",
+
+   "joint":		"_Jnt",
+   "joint_end":	"_JntEnd",
+   "joint_bind": "_Bnd",
+   "ik": "_Ik_Jnt",
+   "fk": "_Fk_Jnt",
+
+   "geo":		"_Geo",
+   "group":		"_Grp",
+
+   "offset":    "Offset",
+   "root":    "Root",
+   "auto":    "Auto",
+
+   "ctrl":		"_Ctrl",
+   "locator":	"_Loc",
+
+   "follicle":	"_Fol",
+   "nurb":		"_Nurb",
+
+   "ik_rp" : "_IKrp",
+   "ik_sc" : "_IKsc"
+}
