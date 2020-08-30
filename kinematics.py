@@ -75,7 +75,7 @@ with open(SETUP_FILE) as setup_file:
 
 class Kinematics_class(tools.Tools_class):
 	
-	def fk_chain(self, size = 1, color = 'lightBlue', curve_type = 'bounding_cube') :
+	def fk_chain(self, size = 1, color = setup['main_color'], curve_type = 'bounding_cube', scale = True) :
 
 		#Check input
 		if input != '':
@@ -94,17 +94,24 @@ class Kinematics_class(tools.Tools_class):
 			#fk_controller = cmds.circle( n = '{}{}'.format(bone,nc['ctrl']) , nr = (1,0,0), r = size)[0]
 			if curve_type == 'bounding_cube':
 				fk_controller = self.bounding_cube(input = bone, size = size, name =  '{}{}'.format(bone,nc['ctrl']))
+				fk_controller = cmds.rename(fk_controller, fk_controller.replace(nc['joint'],''))
 			else:
 				fk_controller = self.curve(type = curve_type, custom_name = True, name = '{}{}'.format(bone,nc['ctrl']), size = size)
-			
+				fk_controller = cmds.rename(fk_controller, fk_controller.replace(nc['joint'],''))
+
 			cmds.delete(cmds.parentConstraint(bone, fk_controller)) #put the controller in position
+
+			#create Root Grp
+			fk_auto_grp = self.root_grp(replace_nc = False)
+
+			#add connections
 			cmds.parentConstraint(fk_controller,bone) #parent Ctrl to Bone
-					
-			fk_auto_grp = self.root_grp(replace_nc = True)
-			 
+			if scale == True:
+				cmds.scaleConstraint(fk_controller,bone) #parent Ctrl to Bone
+
 			#Organize a bit
 			self.asign_color(fk_controller, color)
-			self.hide_attr(fk_controller, s = True, v = True)
+			self.hide_attr(fk_controller, s = 1 - scale, v = True)
 
 			#try to parent it to create chain 
 			if len(fk_controllers) > 0:cmds.parent(fk_auto_grp[0], fk_controllers[-1])
@@ -182,7 +189,7 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def simple_ik_chain(self, start = '', end = '', size = 1, color = 'lightBlue', ik_curve = 'cube', pv_curve = 'sphere', pv = True):
+	def simple_ik_chain(self, start = '', end = '', size = 1, color = setup['main_color'], ik_curve = 'cube', pv_curve = 'sphere', pv = True, top_curve = 'circleX'):
  
 		if start == '':
 			start = cmds.ls(sl =True)[0]
@@ -196,6 +203,8 @@ class Kinematics_class(tools.Tools_class):
 
 		#create ik Controller with offset grp and clean attr
 		ctrl = self.curve(type = ik_curve, rename = False, custom_name = True, name = '{}{}'.format(end, nc ['ctrl']), size = size)
+		ctrl = cmds.rename(ctrl, ctrl.replace(nc['joint'],''))
+
 		ik_system.append(ctrl)
 		self.match(ctrl, end)
 		IK_grp = self.root_grp(replace_nc = True)
@@ -204,8 +213,8 @@ class Kinematics_class(tools.Tools_class):
 		cmds.orientConstraint(ctrl, end ,mo =True)
 
 		#parent ik to controller
-		cmds.parent(ik_handle, ctrl)
-
+		cmds.parentConstraint(ctrl, ik_handle, mo =True)
+		cmds.group(ik_handle, n = ik_handle+ nc['group'])
 
 		#create pole vector
 		if (pv):
@@ -214,7 +223,9 @@ class Kinematics_class(tools.Tools_class):
 			pv_loc = self.pole_vector(bone_one = start, bone_two = cmds.listRelatives(end, p = True), bone_three = end)
 			
 			#create controller in position with offset grp
-			pv_ctrl = self.curve(type = pv_curve, rename = False, custom_name = True, name = '{}_PV{}'.format(end, nc ['ctrl']), size = size/2)
+			pv_ctrl = self.curve(type = pv_curve, rename = False, custom_name = True, name = '{}{}{}'.format(end,nc ['pole_vector'], nc ['ctrl']), size = size/2)
+			pv_ctrl = cmds.rename(pv_ctrl, pv_ctrl.replace(nc['joint'],''))
+
 			ik_system.append(pv_ctrl)
 			self.match(pv_ctrl, pv_loc)
 			cmds.delete(pv_loc)
@@ -224,17 +235,33 @@ class Kinematics_class(tools.Tools_class):
 			#clean controller
 			self.hide_attr(pv_ctrl, r = True,  s = True, v = True)
 
+		#create top ontroler
+		top_ctrl = self.curve(type = top_curve, rename = False, custom_name = True, name = '{}{}'.format(start, nc ['ctrl']), size = size)
+		self.match(top_ctrl, start)
+		top_grp = self.root_grp(replace_nc = True)
 
-		#organize
+		self.hide_attr(top_ctrl, s = True, v = True)
+		ik_system.append(top_ctrl)
+
+		cmds.parentConstraint(top_ctrl, start)
+
+
+		#organize and add color
+
+		#create IK Grp
+		cmds.select(cl=True)
+		ik_main_grp = cmds.group(n = start + nc['ctrl'] + nc ['group'], em =True)
+		cmds.parent(pv_grp[0],ik_main_grp)
+		cmds.parent(IK_grp[0],ik_main_grp)
+		cmds.parent(top_grp[0],ik_main_grp)
+
 		for c in ik_system:
 			cmds.select(c)
 			self.asign_color(color = color)
 
-		#put the ik in the return list
-		ik_system.append(ik_handle)
 
-		#put PV under Ik Offset Grp
-		cmds.parent(pv_grp[0],IK_grp[0])
+		#put the ik in the return list
+		ik_system.append(ik_handle)		
 
 		return ik_system
 
@@ -249,30 +276,30 @@ class Kinematics_class(tools.Tools_class):
 
 
 		#create list for new joints
-		twist_joints = []
+		middle_joints = []
 		
 		#create joints in between
 		for i in range(amount):
 			#duplicate joint and delete children
-			twist_joint = cmds.duplicate(start, n = '{}_Twist_{}{}'.format(start,i, nc['joint']), rc = True)[0]
-			cmds.delete(cmds.listRelatives(twist_joint, c = True))
+			middle_joint = cmds.duplicate(start, n = '{}_Twist_{}{}'.format(start,i, nc['joint']), rc = True)[0]
+			cmds.delete(cmds.listRelatives(middle_joint, c = True))
 
-			twist_joints.append(twist_joint)
+			middle_joints.append(middle_joint)
 
 			#if the new joint is not the first parent it to the last one
 			if cmds.objExists('{}_Twist_{}{}'.format(start,i - 1, nc['joint'])):
-				cmds.parent(twist_joint,'{}_Twist_{}{}'.format(start,i - 1, nc['joint']))
+				cmds.parent(middle_joint,'{}_Twist_{}{}'.format(start,i - 1, nc['joint']))
 			
 			else:
-				cmds.parent(twist_joint, start)
+				cmds.parent(middle_joint, start)
 
 	   #Position joints in correct the spot... 
-		for jnt in twist_joints:
+		for jnt in middle_joints:
 			cmds.setAttr('{}.translate{}'.format(jnt, axis), cmds.getAttr('{}.translate{}'.format(end, axis))/ (amount -1 ))
 
-		cmds.setAttr('{}.translate{}'.format(twist_joints[0], axis), 0)
+		cmds.setAttr('{}.translate{}'.format(middle_joints[0], axis), 0)
 
-		return twist_joints
+		return middle_joints
 
 #----------------------------------------------------------------------------------------------------------------
 
@@ -327,18 +354,20 @@ class Kinematics_class(tools.Tools_class):
 		cmds.pointConstraint(start, twist_joints[0], mo = True)
 
 		#connect joints to rotate
-		return_joint = twist_joints
+		return_joints = twist_joints
 		twist_joints.remove(twist_joints[0])
 		
 		for twist_joint in twist_joints:
 			cmds.connectAttr('{}.output.outputX'.format(mult_node), '{}.rotate{}'.format(twist_joint, axis))
 		
-		return return_joint
+		return return_joints
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def simple_fk_ik(self, start = '', mid = '', end = '', size = 1, color = 'lightBlue', mode = setup['ik_fk_method']):
+	def simple_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method']):
 		
+		return_groups = []
+
 		if start == '':
 			start = cmds.ls(sl=True)[0]
 			mid = cmds.ls(sl=True)[1]
@@ -373,7 +402,6 @@ class Kinematics_class(tools.Tools_class):
 		ik_joints = self.duplicate_change_names( input = '', hi = True, search=nc['joint'], replace =nc['ik'])
 		cmds.select(start)
 		fk_joints = self.duplicate_change_names( input = start, hi = True, search=nc['joint'], replace =nc['fk'])
-
 		
 		#create FK System
 		cmds.select(cl =True)
@@ -381,17 +409,20 @@ class Kinematics_class(tools.Tools_class):
 		for jnt in fk_joints:
 			cmds.select(jnt, add = True)
 
-		fk_system = self.fk_chain(size = size, color = color, curve_type = 'bounding_cube')
+		fk_system = self.fk_chain(size = size, color = color, curve_type = 'bounding_cube', scale = False)
 		print ('FK = {}'.format(fk_system))
+		#add fk group to retunr groups
+		return_groups.append(cmds.listRelatives(fk_system[0], p =True))
 
 		#Create IK System
-
 		print ('creating ik Chain for : {}'.format(start)),
 		ik_system = self.simple_ik_chain(start = ik_joints[0], end = ik_joints[-1], size = size, color = color, pv = True)
 		print ('IK = {}'.format(ik_system))
+		#add fk group to retunr groups
+		return_groups.append(cmds.listRelatives(ik_system[0], p =True))
+		return_groups.append(cmds.listRelatives(ik_system[2], p =True))
 
 		print '__________'
-
 
 		#add swtich attr in all controllers
 		ik_fk_controllers = fk_system + ik_system
@@ -421,5 +452,11 @@ class Kinematics_class(tools.Tools_class):
 			else: 
 				self.switch_constraints(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
 
+		print main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups
+		return main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups
 
-		return main_joints, ik_joints, fk_joints, fk_system, ik_system
+#----------------------------------------------------------------------------------------------------------------
+
+	def twist_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method']):
+		
+		 self.simple_fk_ik(start = start, mid = mid, end = end, size = size, color = color, mode = mode)

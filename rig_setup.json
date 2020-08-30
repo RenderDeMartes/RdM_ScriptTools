@@ -1,5 +1,15 @@
 {
 
+	
+   "right_color" : "blue",
+   "left_color" : "red",
+   "center_color" : "yellow",
+   "main_color" : "lightBlue",
+
+   "ik_ctrl" : "cube",
+   "fk_ctrl" : "cube",
+
    "ik_fk_method" : "blend"
+
 
 }

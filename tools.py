@@ -265,6 +265,11 @@ class Tools_class:
 		self.match(ctrl, sel)
 		self.asign_color(color = 'yellow')
 
+		#connect rotate order to itself
+		self.connect_rotate_order(input = ctrl, object = ctrl)
+
+
+
 		return cmds.ls(sl =True)[0]		
 #----------------------------------------------------------------------------------------------------------------
 
@@ -359,11 +364,19 @@ class Tools_class:
 		self.check_input('connect_rotate_order')	
 
 		#create the attr if it doesnt exists
+		'''
 		try:
 			self.new_enum(input= object, name = 'RotateOrder', enums = 'xyz:yzx:zxy:xzy:yxz:zyx')
 		except:
 			cmds.setAttr('{}.RotateOrder'.format(object), e = True, channelBox = True)
+		'''
+		if cmds.attributeQuery('RotateOrder', node=object, exists=True):
+			pass
+		else:
+			self.new_enum(input= object, name = 'RotateOrder', enums = 'xyz:yzx:zxy:xzy:yxz:zyx')
+			cmds.setAttr('{}.RotateOrder'.format(object), e = True, channelBox = True)
 
+		#connect attr	
 		for input in self.input:
 			cmds.connectAttr('{}.RotateOrder'.format(object), '{}.rotateOrder'.format(input), f = True)
 
@@ -507,8 +520,11 @@ class Tools_class:
 
 		#add new attr to the shape if it doesnt exists
 		try:
-			cmds.addAttr(loc_shape, ln= attr_name, max=1, dv=0, at='double', min=0)
-			cmds.setAttr('{}.{}'.format(loc_shape, attr_name), e=1, keyable=True)
+			if cmds.attributeQuery(attr_name, node=loc_shape, exists=True):
+				pass
+			else:
+				cmds.addAttr(loc_shape, ln= attr_name, max=1, dv=0, at='double', min=0)
+				cmds.setAttr('{}.{}'.format(loc_shape, attr_name), e=1, keyable=True)
 		except:
 			pass
 
@@ -594,9 +610,9 @@ class Tools_class:
 	    cmds.delete (Texto + str(nc['ctrl']+'Shape'))
 	    cmds.move (-0.5,0,0, r = True)
 	    cmds.xform(cp= True)
-	    cmds.rename(name_text + '_text')
+	    cmds.rename(name_text + nc['curve'])
 
-	    return name_text + '_text'
+	    return name_text + nc['curve']
 			
 #----------------------------------------------------------------------------------------------------------------		
 

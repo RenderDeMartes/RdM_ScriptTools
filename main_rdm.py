@@ -32,6 +32,8 @@ licence: https://www.eulatemplate.com/live.php?token=ySe25XC0bKARQymXaGQGR8i4gvX
 author:  Esteban Rodriguez <info@renderdemartes.com>
 
 '''
+version = '3.0.1'
+
 import math
 
 import maya.mel
@@ -58,4 +60,4 @@ except:
 class RdM(kinematics.Kinematics_class):
 
 	def __init__ (self):
-		''
+		print ('RdM Tools Verion {}'.format(version))
