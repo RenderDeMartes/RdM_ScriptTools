@@ -244,8 +244,8 @@ class Tools_class:
 	# meter size
 	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1):
 
-		try:sel = cmds.ls(sl = True)[0]
-		except: cmds.error('we need a selection to operate')
+		#try:sel = cmds.ls(sl = True)[0]
+		#except: cmds.error('we need a selection to operate')
 
 		ctrl = mel.eval(curve_data[type])
 			
