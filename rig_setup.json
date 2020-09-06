@@ -5,11 +5,18 @@
    "left_color" : "red",
    "center_color" : "yellow",
    "main_color" : "lightBlue",
+   "gimbal_color" : "grey",
 
    "ik_ctrl" : "cube",
-   "fk_ctrl" : "cube",
+   "pv_ctrl" : "sphere",
+   "top_ik_ctrl" : "circleX",
 
-   "ik_fk_method" : "blend"
+   "fk_ctrl" : "bounding_cube",
+
+   "ik_fk_method" : "blend",
+
+   "line_width" : "2"
+
 
 
 }

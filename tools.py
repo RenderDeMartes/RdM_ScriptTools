@@ -53,16 +53,17 @@ import pymel.core as pm
 #Read name conventions as nc['']
 #PATH = cmds.internalVar(usd = True) + 'RdM_ScriptTools'
 PATH = os.path.dirname(__file__)
-
-JSON_FILE = (PATH + '/NameConventions.json')
+JSON_FILE = (PATH + '/name_conventions.json')
 with open(JSON_FILE) as json_file:
 	nc = json.load(json_file)
-
 #Read curve shapes info
 CURVE_FILE = (PATH + '/curves.json')
 with open(CURVE_FILE) as curve_file:
 	curve_data = json.load(curve_file)
-	
+#setup File
+SETUP_FILE = (PATH+'/rig_setup.json')
+with open(SETUP_FILE) as setup_file:
+	setup = json.load(setup_file)	
 
 #----------------------------------------------------------------------------------------------------------------
 #create base class for selection objects
@@ -217,7 +218,9 @@ class Tools_class:
 				for R in self.input:
 					for axis in axis_to_hide:
 						cmds.setAttr('{}.rotate{}'.format(R, axis),lock = True, keyable = False, channelBox = False)
-		
+					try:cmds.setAttr('{}.RotateOrder'.format(R),lock = True, keyable = False, channelBox = False)
+					except: print ('rdm.hide_attr: no rotate order found')
+
 			if (s):
 				for S in self.input:
 					for axis in axis_to_hide:
@@ -242,13 +245,15 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------					
 
 	# meter size
-	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1):
+	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1, gimbal = False):
 
-		#try:sel = cmds.ls(sl = True)[0]
-		#except: cmds.error('we need a selection to operate')
+		try:sel = cmds.ls(sl = True)[0]
+		except: sel = 'RdM'
 
+		#create curve from mel cmds in json file
 		ctrl = mel.eval(curve_data[type])
 			
+		#set name of the curve
 		if (rename): 
 			ctrl = cmds.rename(ctrl, '{}{}'.format(sel,nc['ctrl']))
 		
@@ -262,15 +267,45 @@ class Tools_class:
 			curve_cvs = cmds.ls(cmds.ls(sl = True)[0] + ".cv[0:]",fl=True)
 			cmds.scale(size,size,size, curve_cvs)	
 
-		self.match(ctrl, sel)
-		self.asign_color(color = 'yellow')
+		#match to selection and assing color if possible
+		try:self.match(ctrl, sel)
+		except:pass
+		self.asign_color(color = setup['main_color'])
 
 		#connect rotate order to itself
 		self.connect_rotate_order(input = ctrl, object = ctrl)
 
+		#change ctrl line width
+		cmds.setAttr('{}.lineWidth'.format(cmds.listRelatives(ctrl, shapes=True)[0]), int(setup['line_width']))
 
+		#add gimbal
+		if gimbal:
+			#create another cruve based on the original one but with gimbal names and colors 
+			gimbal_ctrl = cmds.duplicate(ctrl, n = '{}'.format(ctrl.replace(nc['ctrl'],nc['gimbal_ctrl'])))[0]
 
-		return cmds.ls(sl =True)[0]		
+			self.connect_rotate_order(input = gimbal_ctrl, object = gimbal_ctrl)
+			self.asign_color(color = setup['gimbal_color'])
+
+			gimbal_grp = self.root_grp(replace_nc = False)
+			cmds.parent(gimbal_grp, ctrl)
+			cmds.setAttr('{}.lineWidth'.format(cmds.listRelatives(gimbal_ctrl, shapes=True)[0]), int(setup['line_width']))
+
+			#scale a bit smaller
+			for shape in cmds.listRelatives(gimbal_ctrl, shapes=True):
+				cmds.select(cl = True)
+				for cv_num in range(cmds.getAttr('{}.spans'.format(shape))+1):
+					cmds.select('{}.cv[{}]'.format(shape, cv_num), add = True)	
+				cmds.scale(0.9,0.9,0.9)
+
+			#create a visibility attr
+			gimbal_attr = self.new_enum(input= ctrl, name = 'Gimbal', enums = 'Hide:Show')
+			cmds.connectAttr(gimbal_attr, '{}.visibility'.format(shape))
+
+			cmds.select(ctrl, gimbal_ctrl)
+
+		#return last ctrl created
+		return cmds.ls(sl =True)		
+
 #----------------------------------------------------------------------------------------------------------------
 
 	def match(self, this = '', that = '' ,t = True, r = True, s = True):
@@ -331,8 +366,6 @@ class Tools_class:
 			cmds.connectAttr('{}.output.outputG'.format(blend_node), '{}.{}.{}Y'.format(main, a, a), f=1)
 			cmds.connectAttr('{}.output.outputB'.format(blend_node), '{}.{}.{}Z'.format(main, a, a), f=1)
 
-
-
 #----------------------------------------------------------------------------------------------------------------
 	def new_attr(self, input= '', name = 'switch', min = 0 , max = 1, default = 0):
 		
@@ -341,9 +374,10 @@ class Tools_class:
 		cmds.setAttr('{}.{}'.format(input, name), e = True, keyable = True)
 
 		return '{}.{}'.format(input, name)
+
 #----------------------------------------------------------------------------------------------------------------
 	
-	def new_enum(self, input= '', name = 'switch', enums = 'Show:Hide'):
+	def new_enum(self, input= '', name = 'switch', enums = 'Hide:Show'):
 		
 		#add new attr as float
 		cmds.addAttr(input, ln = name, at = 'enum', en = enums)
@@ -414,7 +448,6 @@ class Tools_class:
 		self.check_input('duplicate_change_names')	
 
 		#error if search dont exists
-
 		#duplicate and search and replace names
 		if hi == True:
 			cmds.select(self.input, hi =True)
@@ -459,10 +492,9 @@ class Tools_class:
 		#create a cube
 		cmds.select(self.input)
 		if name == '':
-			cube = self.curve(type = 'cube',  size = size)
+			cube = self.curve(type = 'cube',  size = size, gimbal = False)
 		else:
-			cube = self.curve(type = 'cube', custom_name = True, name = name, size = size)
-
+			cube = self.curve(type = 'cube', custom_name = True, name = name, size = size, gimbal = False)
 
 		#move vertex to start and move vertex to finish
 		input_position = cmds.xform(original, q = True, m= True, ws = True)
@@ -514,7 +546,7 @@ class Tools_class:
 		hide_this_attrs = ['lpx','lpy','lpz','lsx','lsy','lsz']
 		for attr in hide_this_attrs:
 			try: cmds.setAttr("{}.{}".format(loc_shape, attr), lock=True, channelBox=False, keyable=False)
-			except: pass
+			except: print ('shape_with_attr info: no rotate order atttr found')
 
 		cmds.setAttr("{}.visibility".format(loc_shape), 0)
 
@@ -544,6 +576,7 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------				
 	def text_curves(self, name_text = 'Name', font = 'Arial', color = 16):   
 
+		#BASED ON OLD ONE 
 
 	    #Im deleting one node so if theres one already in the scene i dont want to delete it
 	    if cmds.objExists('makeTextCurves1'):
@@ -614,6 +647,21 @@ class Tools_class:
 
 	    return name_text + nc['curve']
 			
+#----------------------------------------------------------------------------------------------------------------		
+
+	def swap_connections(self, old_node = '', new_node= 'new_node_here', inputs= 'False', outputd='False'):
+
+		'''
+		#this tool will try to swap all the output or input onenctios to the node
+		wanted_attr = ['translate','rotate','scale']
+
+		source_attrs = cmds.listConnections(old_node, c = True, d=False)
+		destination_attrs = cmds.listConnections(old_node, c = True, s=False)
+
+		print (str(source_attrs) + ':' + str(destination_attrs))
+		'''
+		''
+
 #----------------------------------------------------------------------------------------------------------------		
 
 #tool = Tools_class()

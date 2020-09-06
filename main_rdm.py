@@ -45,11 +45,14 @@ import os
 import json
 
 try: 
+	import tools
+	reload(tools)
 	import kinematics
 	reload(kinematics)
-
 except:
 	import RdM_ScriptTools
+	from RdM_ScriptTools import tools
+	reload(RdM_ScriptTools.tools)
 	from RdM_ScriptTools import kinematics
 	reload(RdM_ScriptTools.kinematics)
 
@@ -60,4 +63,5 @@ except:
 class RdM(kinematics.Kinematics_class):
 
 	def __init__ (self):
-		print ('RdM Tools Verion {}'.format(version))
+		OpenMaya.MGlobal.displayInfo('RdM Tools Verion {}'.format(version))
+

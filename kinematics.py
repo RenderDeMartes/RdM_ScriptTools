@@ -63,7 +63,7 @@ except:
 #PATH = cmds.internalVar(usd = True) + 'RdM_ScriptTools'
 PATH = os.path.dirname(__file__)
 
-JSON_FILE = (PATH+'/NameConventions.json')
+JSON_FILE = (PATH+'/name_conventions.json')
 with open(JSON_FILE) as json_file:
 	nc = json.load(json_file)
 SETUP_FILE = (PATH+'/rig_setup.json')
@@ -75,7 +75,7 @@ with open(SETUP_FILE) as setup_file:
 
 class Kinematics_class(tools.Tools_class):
 	
-	def fk_chain(self, size = 1, color = setup['main_color'], curve_type = 'bounding_cube', scale = True) :
+	def fk_chain(self, size = 1, color = setup['main_color'], curve_type = setup['fk_ctrl'], scale = True) :
 
 		#Check input
 		if input != '':
@@ -189,7 +189,7 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def simple_ik_chain(self, start = '', end = '', size = 1, color = setup['main_color'], ik_curve = 'cube', pv_curve = 'sphere', pv = True, top_curve = 'circleX'):
+	def simple_ik_chain(self, start = '', end = '', size = 1, color = setup['main_color'], ik_curve = setup['ik_ctrl'], pv_curve = setup['pv_ctrl'], pv = True, top_curve = setup['top_ik_ctrl']):
  
 		if start == '':
 			start = cmds.ls(sl =True)[0]
@@ -235,12 +235,12 @@ class Kinematics_class(tools.Tools_class):
 			#clean controller
 			self.hide_attr(pv_ctrl, r = True,  s = True, v = True)
 
-		#create top ontroler
+		#create top controler
 		top_ctrl = self.curve(type = top_curve, rename = False, custom_name = True, name = '{}{}'.format(start, nc ['ctrl']), size = size)
 		self.match(top_ctrl, start)
 		top_grp = self.root_grp(replace_nc = True)
 
-		self.hide_attr(top_ctrl, s = True, v = True)
+		self.hide_attr(top_ctrl,r = True,  s = True, v = True)
 		ik_system.append(top_ctrl)
 
 		cmds.parentConstraint(top_ctrl, start)
@@ -264,11 +264,7 @@ class Kinematics_class(tools.Tools_class):
 		ik_system.append(ik_handle)		
 
 		return ik_system
-
 #----------------------------------------------------------------------------------------------------------------
-
-	def ik_stretchy(self, ik_handle):
-		''
 
 #----------------------------------------------------------------------------------------------------------------
 
@@ -417,16 +413,18 @@ class Kinematics_class(tools.Tools_class):
 		fk_system = self.fk_chain(size = size, color = color, curve_type = 'bounding_cube', scale = False)
 		print ('FK = {}'.format(fk_system))
 		#add fk group to retunr groups
-		return_groups.append(cmds.listRelatives(fk_system[0], p =True))
+		return_groups.append(cmds.listRelatives(fk_system[0], p =True)[0])
 
 		#Create IK System
 		print ('creating ik Chain for : {}'.format(start)),
 		ik_system = self.simple_ik_chain(start = ik_joints[0], end = ik_joints[-1], size = size, color = color, pv = True)
 		print ('IK = {}'.format(ik_system))
-		#add fk group to retunr groups
-		return_groups.append(cmds.listRelatives(ik_system[0], p =True))
-		return_groups.append(cmds.listRelatives(ik_system[2], p =True))
 
+		#add ik group to return groups
+		return_groups.append(cmds.listRelatives(ik_system[0], p =True)[0])
+		return_groups.append(cmds.listRelatives(ik_system[2], p =True)[0])
+		return_groups.append(cmds.listRelatives(return_groups[1], p =True)[0])
+		print return_groups
 		print '__________'
 
 		#add swtich attr in all controllers
@@ -456,6 +454,16 @@ class Kinematics_class(tools.Tools_class):
 				self.switch_blend_colors(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
 			else: 
 				self.switch_constraints(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
+
+		#connect visibility
+		#FK Ctrl Grp					
+		cmds.connectAttr(switch_attr, '{}.visibility'.format(return_groups[0]))
+
+		#IK
+		reverse_node = cmds.shadingNode('reverse', asUtility = True)
+		cmds.connectAttr(switch_attr, '{}.input.inputX'.format(reverse_node))
+		cmds.connectAttr('{}.output.outputX'.format(reverse_node), '{}.visibility'.format(return_groups[3]))
+
 
 		print main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups
 		return main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups
