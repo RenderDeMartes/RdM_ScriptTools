@@ -236,7 +236,7 @@ class Kinematics_class(tools.Tools_class):
 			self.hide_attr(pv_ctrl, r = True,  s = True, v = True)
 
 		#create top controler
-		top_ctrl = self.curve(type = top_curve, rename = False, custom_name = True, name = '{}{}'.format(start, nc ['ctrl']), size = size)
+		top_ctrl = self.curve(type = top_curve, rename = False, custom_name = True, name = '{}{}'.format(start.replace(nc['joint'], ''), nc ['ctrl']), size = size)
 		self.match(top_ctrl, start)
 		top_grp = self.root_grp(replace_nc = True)
 
@@ -244,7 +244,6 @@ class Kinematics_class(tools.Tools_class):
 		ik_system.append(top_ctrl)
 
 		cmds.parentConstraint(top_ctrl, start)
-
 
 		#organize and add color
 

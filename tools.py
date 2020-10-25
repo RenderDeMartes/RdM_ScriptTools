@@ -303,8 +303,10 @@ class Tools_class:
 
 			cmds.select(ctrl, gimbal_ctrl)
 
+			print ('gimbal created')
+
 		#return last ctrl created
-		return cmds.ls(sl =True)		
+		return ctrl	
 
 #----------------------------------------------------------------------------------------------------------------
 

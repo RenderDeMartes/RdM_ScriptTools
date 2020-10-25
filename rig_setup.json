@@ -1,6 +1,5 @@
 {
 
-	
    "right_color" : "blue",
    "left_color" : "red",
    "center_color" : "yellow",
@@ -16,7 +15,5 @@
    "ik_fk_method" : "blend",
 
    "line_width" : "2"
-
-
 
 }
