@@ -56,8 +56,6 @@ except:
 	from RdM_ScriptTools import kinematics
 	reload(RdM_ScriptTools.kinematics)
 
-
-
 #----------------
 
 class RdM(kinematics.Kinematics_class):

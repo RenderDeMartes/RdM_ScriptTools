@@ -17,6 +17,7 @@ match(this = '', that = '' ,t = True, r = True, s = True)
 switch(this = '', that = '', main = '', attr = '')#create a switch with a parent contraint 
 new_attr(input= '', name = 'switch', min = 0 , max = 1, default = 0) # create a new float attr with min, max and feault value
 
+NEEDS A UPDATE :)
 #----------------
 how to: 
 	
@@ -78,22 +79,28 @@ class Tools_class:
 	#input can be an argument or a selection
 
 	def check_input(self, func = '', print_input = False):
+		'''
+		if input is empty uses selection instead, i used to use this but stop becouse is not usefull... sorry :)
+		'''
 		
 		if self.input == '':
 						
 			self.input = cmds.ls(sl = True)
 			if (print_input):
-				print '{} input is selection: {}'.format(func, self.input)
+				print ('{} input is selection: {}'.format(func, self.input))
 			
 		else:
 			if (print_input):
-				print '{} input is argument: {}'.format(func, self.input)
+				print ('{} input is argument: {}'.format(func, self.input))
 	
 	
 #----------------------------------------------------------------------------------------------------------------			
 	#create a group over the 
 	def	root_grp(self, input = '', custom = False, custom_name = 'customName', autoRoot = False, replace_nc = False):
-		
+		'''
+		create offsete groups for desire transforms
+		'''
+
 		#Check input
 		if input != '':
 			self.input = [input]
@@ -125,7 +132,7 @@ class Tools_class:
 				father = cmds.listRelatives(i, p =1)
 				
 				#Null group as parent in same xform
-				group_zero = cmds.group(em=1, n = '{}_{}'.format(i,name) + nc['group'])
+				group_zero = cmds.group(em=1, n = '{}{}'.format(i,name) + nc['group'])
 				cmds.delete(cmds.parentConstraint(i,group_zero, mo =0))
 			  
 				cmds.parent(i,group_zero)
@@ -151,6 +158,9 @@ class Tools_class:
 	#Search and Replace names
 	
 	def replace_name(self, input = '', search = '', replace = '', hi = False):
+		'''
+		replaces names of obj or obj hierarchy
+		'''
 			
 		if hi ==True:
 
@@ -168,6 +178,9 @@ class Tools_class:
 	#Asign Color
 	
 	def asign_color(self, input = '', color = 'lightBlue'):
+		'''
+		assing color to desire transform
+		'''
 		
 		if input != '':
 			self.input = [input]
@@ -194,6 +207,9 @@ class Tools_class:
 			
 #----------------------------------------------------------------------------------------------------------------					
 	def hide_attr(self, input = '', t= False, r = False, s = False, v = False, show = False):
+		'''
+		hide translate, rotate, scale and visivility from attrs channel box
+		'''
 
 		if input != '':
 			self.input = [input]
@@ -208,7 +224,7 @@ class Tools_class:
 		
 		#hide selected attrs
 		for i in self.input:
-
+			cmds.select(i)
 			if (t):
 				for T in self.input:
 					for axis in axis_to_hide:
@@ -238,7 +254,7 @@ class Tools_class:
 				
 				for eachObj in sel:
 					for attr in attrs:	        
-						ud=pm.listAttr(eachObj, ud=1)
+						pm.listAttr(eachObj, ud=1)
 						pm.setAttr('{}{}'.format(eachObj, attr), k=True)
 						pm.setAttr('{}{}'.format(eachObj,attr), l=False)
 
@@ -246,6 +262,9 @@ class Tools_class:
 
 	# meter size
 	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1, gimbal = False):
+		'''
+		create curves shapes based on the curve json file
+		'''
 
 		try:sel = cmds.ls(sl = True)[0]
 		except: sel = 'RdM'
@@ -311,6 +330,9 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------
 
 	def match(self, this = '', that = '' ,t = True, r = True, s = True):
+		'''
+		match desire transforms
+		'''
 		if (t):
 			cmds.delete(cmds.pointConstraint(that, this, mo =False))
 		if (r):
@@ -320,7 +342,10 @@ class Tools_class:
 
 #----------------------------------------------------------------------------------------------------------------
 	def switch_constraints(self, this = '', that = '', main = '', attr = ''):
-		
+		'''
+		create a switch between 3 joints chains and it used a parent constraint instead of blend colors
+		'''
+
 		#create shortest parentContraint
 		contraint = cmds.parentConstraint(this,that, main, mo =True)[0]
 		cmds.setAttr('{}.interpType'.format(contraint), 2)
@@ -334,7 +359,7 @@ class Tools_class:
 
 
 		#connect scale
-		scale_contraint = cmds.scaleConstraint(this,that, main, mo =True)[0]
+		cmds.scaleConstraint(this,that, main, mo =True)[0]
 		
 		#Create nodes and connect to switch
 		reverse2 = cmds.shadingNode('reverse', asUtility = True, n = '{}_Reverse'.format(this))
@@ -345,12 +370,15 @@ class Tools_class:
 
 #----------------------------------------------------------------------------------------------------------------
 	def switch_blend_colors(self, this = '', that = '', main = '', attr = ''):
+		'''
+		create a swhitch between 3 joints chains and it used a blend colors instead of parent constraints
+		'''
 
 		attrs = ['translate', 'rotate', 'scale']
 
 		for a in attrs:
 		#create blend node
-			blend_node = cmds.shadingNode('blendColors' , asUtility = True, n = '{}_{}_Blend_Node'.format(this, a))
+			blend_node = cmds.shadingNode('blendColors' , asUtility = True, n = '{}_{}{}'.format(this, a, nc['blend']))
 
 			#connect to blend node
 			cmds.connectAttr('{}.{}.{}X'.format(this, a, a), '{}.color1.color1R'.format(blend_node), f=1)
@@ -370,7 +398,10 @@ class Tools_class:
 
 #----------------------------------------------------------------------------------------------------------------
 	def new_attr(self, input= '', name = 'switch', min = 0 , max = 1, default = 0):
-		
+		'''
+		create a double attr default is 0 to 1 and deafault value as 0
+		'''
+	
 		#add new attr as float
 		cmds.addAttr(input, ln = name, at = 'double', min = min, max = max, dv = default)
 		cmds.setAttr('{}.{}'.format(input, name), e = True, keyable = True)
@@ -380,16 +411,32 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------
 	
 	def new_enum(self, input= '', name = 'switch', enums = 'Hide:Show'):
+		'''
+		create an enum attr in the attr lists for the input, default is going to be Hide and Show
+		'''
 		
 		#add new attr as float
 		cmds.addAttr(input, ln = name, at = 'enum', en = enums)
 		cmds.setAttr('{}.{}'.format(input, name), e = True, channelBox = True)
 
 		return '{}.{}'.format(input, name)
+	#----------------------------------------------------------------------------------------------------------------
+
+	def line_attr(self, input = '', name = 'name', lines = 10):
+		'''
+		create this attr in the attr lists __________
+		'''
+		line_attr = self.new_enum(input= input, name = '_'*lines, enums = '{}:'.format(name))
+		cmds.setAttr(line_attr,e=True, lock = True)
+
+		return line_attr
 
 #----------------------------------------------------------------------------------------------------------------
 
 	def connect_rotate_order(self, input = '', object = 'controller'):
+		'''
+		create a rotate order attr and connects it to the desire ogject
+		'''
 
 		if input != '':
 			self.input = [input]
@@ -420,27 +467,10 @@ class Tools_class:
 
 	#----------------------------------------------------------------------------------------------------------------
 
-	def line_attr(self, input = '', name = 'name', lines = 10):
-		
-		if input != '':
-			self.input = [input]
-			
-		else:	
-			self.input = input
-
-		self.check_input('line_attr')
-
-		for i in self.input:
-			line_attr = self.new_enum(input= i, name = '_'*lines, enums = '{}:'.format(name))
-			cmds.setAttr(line_attr,e=True, lock = True)
-
-		return line_attr
-
-
-	#----------------------------------------------------------------------------------------------------------------
-
 	def duplicate_change_names(self, input = '', hi = True, search='_Jnt', replace ='_dup'):
-
+		'''
+		duplicate any herachy with no duplicated names but with clean ones
+		'''
 		if input != '':
 			self.input = [input]
 			
@@ -474,6 +504,9 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------
 
 	def bounding_cube(self, input = '', size = 1, name = ''):
+		'''
+		create a ctrl cube with coverage for the full limb, so its like a bounding box in lenght
+		'''
 
 		#turn off soft selection
 		cmds.softSelect(e=True, softSelectEnabled = False)
@@ -490,7 +523,7 @@ class Tools_class:
 		# get children of input
 		original = self.input[0]
 		children = cmds.listRelatives(self.input, c = True)
-		print children
+		print (children)
 		#create a cube
 		cmds.select(self.input)
 		if name == '':
@@ -499,8 +532,8 @@ class Tools_class:
 			cube = self.curve(type = 'cube', custom_name = True, name = name, size = size, gimbal = False)
 
 		#move vertex to start and move vertex to finish
-		input_position = cmds.xform(original, q = True, m= True, ws = True)
-		input_child_position = cmds.xform(children, q = True, m= True, ws = True)
+		#input_position = cmds.xform(original, q = True, m= True, ws = True)
+		#input_child_position = cmds.xform(children, q = True, m= True, ws = True)
 
 		#createl cluster per side to locate them
 		cmds.select('{}.cv[0]'.format(cube),'{}.cv[3:5]'.format(cube),'{}.cv[11:12]'.format(cube), '{}.cv[14:15]'.format(cube))
@@ -523,6 +556,12 @@ class Tools_class:
 
 #----------------------------------------------------------------------------------------------------------------
 	def shape_with_attr(self, input = '', obj_name = 'Switch', attr_name = 'Switch'):
+		'''
+		create a shape with an attr to put inside all the ctrls, 
+		if the initial shape doesnt exists it create it, else it just put it inside
+		input = a list
+		
+		'''
 
 		#get correct input as list
 		if input != '':
@@ -578,7 +617,7 @@ class Tools_class:
 #----------------------------------------------------------------------------------------------------------------				
 	def text_curves(self, name_text = 'Name', font = 'Arial', color = 16):   
 
-		#BASED ON OLD ONE 
+		#BASED ON OLD ONE in RDM Tools V1 (Sorry for the spanish i just copy paste it)
 
 	    #Im deleting one node so if theres one already in the scene i dont want to delete it
 	    if cmds.objExists('makeTextCurves1'):
@@ -596,9 +635,7 @@ class Tools_class:
 	    #print Lista
 	    Shape = Lista[1]
 	    #print Shape
-	    
 	    cmds.delete ('makeTextCurves1')
-
 	    for Curva in Lista:
 	        if cmds.objectType(str(Curva), isType='nurbsCurve'):
 	            #print Curva
@@ -616,8 +653,7 @@ class Tools_class:
 	                #print 'DobleCurva ' + str(DobleCurva)
 	                LetrasDobles.append (Curva)
 	                            
-	            else:   
-	                     
+	            else:                        
 	                #parent to first shape
 	                if not Shape == curvaPapa[0]:
 	                    cmds.makeIdentity (curvaAbuelo, a = True, t = True , r = True)
@@ -626,7 +662,6 @@ class Tools_class:
 	                #Colores
 	                cmds.setAttr (Curva+'.overrideEnabled', 1)
 	                cmds.setAttr (Curva+'.overrideColor', Color)
-
 	                      
 	    #Do stuff for the Double Letters
 	        #print LetrasDobles
@@ -662,8 +697,86 @@ class Tools_class:
 
 		print (str(source_attrs) + ':' + str(destination_attrs))
 		'''
+		
 		''
 
 #----------------------------------------------------------------------------------------------------------------		
+
+	def curve_between(self, start, end):
+		#create a simple linear curve between 2 joints 
+	   
+	   pos_a = cmds.xform(start, q=True,t=True, ws=True)
+	   pos_b = cmds.xform(end, q=True,t=True, ws=True) 
+	   
+	   crv = cmds.curve(d=1, p=[pos_a,pos_b], k=[0,1], n = '{}{}'.format(start, nc['curve']))
+	   
+	   return crv
+
+#----------------------------------------------------------------------------------------------------------------		
+
+	def create_ik_spline_twist(self, start, end, curve):
+		#create ik spline based on 2 joints and one curve
+
+	    # ik spline solver
+	    ikSpline = cmds.ikHandle(sj=start,
+	                             ee=end,
+	                             sol='ikSplineSolver',
+	                             n=start + '_Twist' + nc['ik_spline'],
+	                             c = curve,
+	                             ccv=False,
+	                             pcv = False)
+
+	    effector_spline = cmds.rename(ikSpline[1],
+	                                 start + '_Twist' + nc['effector'])
+	    ikSpline = ikSpline[0]
+	        
+	    return {'ikHandle': ikSpline, 'effector': effector_spline}
+
+#----------------------------------------------------------------------------------------------------------------		
+
+	def connect_md_node(self, in_x1 = '', in_x2 = 1.0, out_x = '', mode = 'mult', name = '', force = False):
+		'''
+		this wil create a md node for you to connect something in the input 1x, to output 1x and a value
+		mode = mult or devide
+		'''
+		if name == '':
+			try:
+				name = in_x1.split('.')[0]
+			except:
+				name = in_x2.split('.')[0]
+
+		#create md node with correct value and mode
+		md_node = cmds.shadingNode('multiplyDivide', asUtility=1, n  = '{}{}'.format(name, nc['multiplyDivide']))
+
+		if mode == 'divide':
+			cmds.setAttr(str(md_node)+'.operation', 2)
+		else:
+			cmds.setAttr(str(md_node)+'.operation', 1)
+
+		#connect md node
+		#check input 1x
+		if isinstance(in_x1, int) == True:
+			cmds.setAttr(str(md_node)+'.input1X', in_x1)
+		elif isinstance(in_x1, float) == True:
+			cmds.setAttr(str(md_node)+'.input1X', in_x1)
+		else: 
+			cmds.connectAttr(in_x1, '{}.input1.input1X'.format(md_node), f=True)
+
+		#check input 2x
+		if isinstance(in_x2, int) == True:
+			cmds.setAttr(str(md_node)+'.input2X', in_x2)
+		elif isinstance(in_x2, float) == True:
+			cmds.setAttr(str(md_node)+'.input2X', in_x2)
+		else: 
+			cmds.connectAttr(in_x2, '{}.input2.input2X'.format(md_node), f=True)
+
+		#connect output
+		if force: 
+				cmds.connectAttr('{}.output.outputX'.format(md_node), out_x, f=True)
+		else:
+			cmds.connectAttr('{}.output.outputX'.format(md_node), out_x)
+
+		#return node
+		return md_node
 
 #tool = Tools_class()
