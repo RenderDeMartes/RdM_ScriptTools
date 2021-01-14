@@ -1,7 +1,7 @@
 {
 
-   "right_color" : "blue",
-   "left_color" : "red",
+   "right_color" : "red",
+   "left_color" : "relightd",
    "center_color" : "yellow",
    "main_color" : "lightBlue",
    "gimbal_color" : "grey",

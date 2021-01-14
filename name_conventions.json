@@ -16,10 +16,12 @@
    "geo":		"_Geo",
    "group":		"_Grp",
    "locator":  "_Loc",
+   "cluster":  "_Cls",
+   "cluster_handle":  "_Cls_Handle",
 
    "ctrl":		"_Ctrl",
    "gimbal_ctrl":  "_Gimbal_Ctrl",
-   "curve":		"_Cv",   
+   "curve":		"_Crv",   
 
    "follicle":	"_Fol",
    "nurb":		"_Nurb",
@@ -33,5 +35,7 @@
    "multiplyDivide":"_MD",
    "distance":"_Distance",
    "condition":"_Condition",
-   "blend":"_Blend"
+   "blend":"_Blend",
+
+   "connected":"_Connected"
 }

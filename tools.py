@@ -779,4 +779,82 @@ class Tools_class:
 		#return node
 		return md_node
 
+#----------------------------------------------------------------------------------------------------------------
+
+	def trasform_on_sel(self, transform='', name='Temp'):
+		'''
+		position a transform node in desire selection, if there is no trasnform it will create a joint for you
+		'''
+		
+		cluster = cmds.cluster(n='temp'+nc['cluster'])
+		print (cluster)
+		#cluster = cmds.rename(cluster,str(cluster[1]).replace('Handle', nc['cluster_handle']))
+
+		#create if no input
+		if transform == '':
+			cmds.select(cl=True)
+			transform = cmds.joint(n=name+nc['joint'])
+		
+		#put input in desire location
+		cmds.delete(cmds.parentConstraint(cluster[1], transform, mo=False))
+
+#----------------------------------------------------------------------------------------------------------------
+# 		
+	def connect_with_line(self, start='', end=''):
+		'''
+		create a line in between 2 transforms (start and end)
+		'''
+		if start=='':
+			sel = cmds.ls(sl=True)
+			start = sel[0]
+			end = sel[1]
+
+		#create line 
+		cv = self.curve_between(start=start, end=end)
+		cv = cmds.rename(cv, '{}_{}{}{}'.format(start,end,nc['connected'], nc['curve']))
+
+		#create clusters on cvs 0 and 1
+		cmds.select('{}.cv[0]'.format(cv))
+		cluster_start = cmds.cluster(n='{}{}'.format(start,nc['cluster']))
+		cmds.select('{}.cv[1]'.format(cv))
+		cluster_end = cmds.cluster(n='{}{}'.format(end,nc['cluster']))
+
+		#create aprents constrains to clusters
+		cmds.parentConstraint(start, cluster_start)
+		cmds.parentConstraint(end, cluster_end)
+
+		#clean and hide cv and clusters
+		cmds.setAttr("{}.overrideEnabled".format(cv), 1)
+		cmds.setAttr("{}.overrideDisplayType".format(cv), 2)
+
+		cmds.setAttr('{}.v'.format(cluster_start[1]), 0)
+		cmds.setAttr('{}.v'.format(cluster_end[1]), 0)
+
+		connect_with_line_assets = [cv, cluster_start[1], cluster_end[1]]
+
+		return connect_with_line_assets
+
+#----------------------------------------------------------------------------------------------------------------
+
+	def lock_node(unlock=False):
+		'''
+		this will lock and unlock (with the attr True) any input node
+		'''			
+
+
+#----------------------------------------------------------------------------------------------------------------
+
+	#tail/ finger, curl FK pero en kinnematics
+	#world mirror para sistemas completos
+	#Sliders
+	#skinning pero puede ser una clase nueva: bind skin, transfer skin, select from, copy, add, remove, remove unused, copy weight, paste weight, Mirror, joints edit on, joints edit off, import y export
+	#controles con forma de base, root, cog, orient templates
+	#lock/unlock nodes
+	#show/hide by type
+
+	#revisar bounding cubes en setup
+	#REVISAR NOMBRES DE CLUSTERS
+
+
 #tool = Tools_class()
+
