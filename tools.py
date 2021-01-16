@@ -75,7 +75,7 @@ class Tools_class:
 		
 		self.input = input
 
-#----------------------------------------------------------------------------------------------------------------			
+	#----------------------------------------------------------------------------------------------------------------			
 	#input can be an argument or a selection
 
 	def check_input(self, func = '', print_input = False):
@@ -94,7 +94,7 @@ class Tools_class:
 				print ('{} input is argument: {}'.format(func, self.input))
 	
 	
-#----------------------------------------------------------------------------------------------------------------			
+	#----------------------------------------------------------------------------------------------------------------			
 	#create a group over the 
 	def	root_grp(self, input = '', custom = False, custom_name = 'customName', autoRoot = False, replace_nc = False):
 		'''
@@ -154,7 +154,7 @@ class Tools_class:
 				
 		return groups    
 
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 	#Search and Replace names
 	
 	def replace_name(self, input = '', search = '', replace = '', hi = False):
@@ -174,7 +174,7 @@ class Tools_class:
 		return cmds.ls(sl = True)
 
 
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 	#Asign Color
 	
 	def asign_color(self, input = '', color = 'lightBlue'):
@@ -205,7 +205,7 @@ class Tools_class:
 			cmds.setAttr ('{}.overrideEnabled'.format(obj), 1)
 			cmds.setAttr ('{}.overrideColor'.format(obj), color_num)
 			
-#----------------------------------------------------------------------------------------------------------------					
+	#----------------------------------------------------------------------------------------------------------------					
 	def hide_attr(self, input = '', t= False, r = False, s = False, v = False, show = False):
 		'''
 		hide translate, rotate, scale and visivility from attrs channel box
@@ -258,7 +258,7 @@ class Tools_class:
 						pm.setAttr('{}{}'.format(eachObj, attr), k=True)
 						pm.setAttr('{}{}'.format(eachObj,attr), l=False)
 
-#----------------------------------------------------------------------------------------------------------------					
+	#----------------------------------------------------------------------------------------------------------------					
 
 	# meter size
 	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1, gimbal = False):
@@ -327,7 +327,7 @@ class Tools_class:
 		#return last ctrl created
 		return ctrl	
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	def match(self, this = '', that = '' ,t = True, r = True, s = True):
 		'''
@@ -340,7 +340,7 @@ class Tools_class:
 		if (s):
 			cmds.delete(cmds.scaleConstraint(that, this, mo =False))
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 	def switch_constraints(self, this = '', that = '', main = '', attr = ''):
 		'''
 		create a switch between 3 joints chains and it used a parent constraint instead of blend colors
@@ -368,7 +368,7 @@ class Tools_class:
 		cmds.connectAttr('{}'.format(attr), '{}.inputX'.format(reverse2), f = True)
 		cmds.connectAttr('{}.outputX'.format(reverse2), '{}_parentConstraint1.{}W0'.format(main,this), f =True)
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 	def switch_blend_colors(self, this = '', that = '', main = '', attr = ''):
 		'''
 		create a swhitch between 3 joints chains and it used a blend colors instead of parent constraints
@@ -396,7 +396,7 @@ class Tools_class:
 			cmds.connectAttr('{}.output.outputG'.format(blend_node), '{}.{}.{}Y'.format(main, a, a), f=1)
 			cmds.connectAttr('{}.output.outputB'.format(blend_node), '{}.{}.{}Z'.format(main, a, a), f=1)
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 	def new_attr(self, input= '', name = 'switch', min = 0 , max = 1, default = 0):
 		'''
 		create a double attr default is 0 to 1 and deafault value as 0
@@ -408,7 +408,7 @@ class Tools_class:
 
 		return '{}.{}'.format(input, name)
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 	
 	def new_enum(self, input= '', name = 'switch', enums = 'Hide:Show'):
 		'''
@@ -431,7 +431,17 @@ class Tools_class:
 
 		return line_attr
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
+
+	def string_attr(self, input = '', name = 'name', string = 'string'):
+		'''
+		create a string attr in selected node
+		'''
+		cmds.addAttr(input, ln=name, dt="string")
+		cmds.setAttr('{}.{}'.format(input,name), string, type="string")
+
+		return '{}.{}'.format(input,name)
+	#----------------------------------------------------------------------------------------------------------------
 
 	def connect_rotate_order(self, input = '', object = 'controller'):
 		'''
@@ -501,7 +511,7 @@ class Tools_class:
 
 		#return list
 		return return_list[-1]
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	def bounding_cube(self, input = '', size = 1, name = ''):
 		'''
@@ -554,7 +564,7 @@ class Tools_class:
 		cmds.select(cube)
 		return cube
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 	def shape_with_attr(self, input = '', obj_name = 'Switch', attr_name = 'Switch'):
 		'''
 		create a shape with an attr to put inside all the ctrls, 
@@ -614,7 +624,7 @@ class Tools_class:
 		return obj_name + nc['locator'] + '.' + attr_name
 
 
-#----------------------------------------------------------------------------------------------------------------				
+	#----------------------------------------------------------------------------------------------------------------				
 	def text_curves(self, name_text = 'Name', font = 'Arial', color = 16):   
 
 		#BASED ON OLD ONE in RDM Tools V1 (Sorry for the spanish i just copy paste it)
@@ -684,7 +694,7 @@ class Tools_class:
 
 	    return name_text + nc['curve']
 			
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 
 	def swap_connections(self, old_node = '', new_node= 'new_node_here', inputs= 'False', outputd='False'):
 
@@ -700,7 +710,7 @@ class Tools_class:
 		
 		''
 
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 
 	def curve_between(self, start, end):
 		#create a simple linear curve between 2 joints 
@@ -712,7 +722,7 @@ class Tools_class:
 	   
 	   return crv
 
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 
 	def create_ik_spline_twist(self, start, end, curve):
 		#create ik spline based on 2 joints and one curve
@@ -732,7 +742,7 @@ class Tools_class:
 	        
 	    return {'ikHandle': ikSpline, 'effector': effector_spline}
 
-#----------------------------------------------------------------------------------------------------------------		
+	#----------------------------------------------------------------------------------------------------------------		
 
 	def connect_md_node(self, in_x1 = '', in_x2 = 1.0, out_x = '', mode = 'mult', name = '', force = False):
 		'''
@@ -779,7 +789,7 @@ class Tools_class:
 		#return node
 		return md_node
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	def trasform_on_sel(self, transform='', name='Temp'):
 		'''
@@ -798,8 +808,8 @@ class Tools_class:
 		#put input in desire location
 		cmds.delete(cmds.parentConstraint(cluster[1], transform, mo=False))
 
-#----------------------------------------------------------------------------------------------------------------
-# 		
+	#----------------------------------------------------------------------------------------------------------------
+	#connect two transforms with a line
 	def connect_with_line(self, start='', end=''):
 		'''
 		create a line in between 2 transforms (start and end)
@@ -834,22 +844,29 @@ class Tools_class:
 
 		return connect_with_line_assets
 
-#----------------------------------------------------------------------------------------------------------------
-
-	def lock_node(unlock=False):
+	#----------------------------------------------------------------------------------------------------------------
+	#lock and unlock nodes
+	def lock_node(self, input = '', unlock=False):
 		'''
 		this will lock and unlock (with the attr True) any input node
 		'''			
+		if input == '':
+			input = cmds.ls(sl=True)
+		
+		for node in input:
+			if unlock ==True:
+				cmds.lockNode(node, lock=False)
+			else:
+				cmds.lockNode(node, lock=True)
 
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	#tail/ finger, curl FK pero en kinnematics
 	#world mirror para sistemas completos
 	#Sliders
 	#skinning pero puede ser una clase nueva: bind skin, transfer skin, select from, copy, add, remove, remove unused, copy weight, paste weight, Mirror, joints edit on, joints edit off, import y export
 	#controles con forma de base, root, cog, orient templates
-	#lock/unlock nodes
 	#show/hide by type
 
 	#revisar bounding cubes en setup

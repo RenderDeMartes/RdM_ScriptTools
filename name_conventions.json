@@ -17,7 +17,6 @@
    "group":		"_Grp",
    "locator":  "_Loc",
    "cluster":  "_Cls",
-   "cluster_handle":  "_Cls_Handle",
 
    "ctrl":		"_Ctrl",
    "gimbal_ctrl":  "_Gimbal_Ctrl",

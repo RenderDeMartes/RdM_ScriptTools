@@ -197,7 +197,7 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def streatchy_ik(self, ik = '', ik_ctrl= '', top_ctrl = '', pv_ctrl = '', attrs_location = '', name = ''):
+	def streatchy_ik(self, ik = '', ik_ctrl= '', top_ctrl = '', pv_ctrl = '', attrs_location = '', name = '', axis = 'X'):
 		
 		'''
 		create a ik stretchy system for the simple ik chain (only 3 joints allowed)
@@ -206,7 +206,7 @@ class Kinematics_class(tools.Tools_class):
 		if ik == '':
 			ik = cmds.ls(sl=True)
 		if name == '':
-			name = ik[0]
+			name = ik
 	
 		#get components in the ik
 		base_joint = cmds.listConnections (ik)
@@ -241,15 +241,17 @@ class Kinematics_class(tools.Tools_class):
 		distance = cmds.distanceDimension(sp=first_pos, ep=end_pos)
 		distance = cmds.rename(distance, ik_joints[-1] + '_' + ik_joints[0]+ nc['distance']+'_Shape')
 		cmds.rename(cmds.listRelatives(distance, p =True), ik_joints[-1] + '_' + ik_joints[0]+ nc['distance'])
+		cmds.setAttr('{}.visibility'.format(distance), 0)
 		#top PV distance
 		top_distance = cmds.distanceDimension(sp=first_pos, ep=pv_pos)
 		top_distance = cmds.rename(top_distance, ik_joints[1] + '_' + ik_joints[0]+ nc['distance']+'_Shape')
 		cmds.rename(cmds.listRelatives(top_distance, p =True), ik_joints[1] + '_' + ik_joints[0]+ nc['distance'])
-			
+		cmds.setAttr('{}.visibility'.format(top_distance), 0)		
 		#IK PV distance
 		ik_distance = cmds.distanceDimension(sp=end_pos, ep=pv_pos)
 		ik_distance = cmds.rename(ik_distance, ik_joints[-1] + '_' + ik_joints[1]+ nc['distance']+'_Shape')
 		cmds.rename(cmds.listRelatives(ik_distance, p =True), ik_joints[-1] + '_' + ik_joints[1]+ nc['distance'])	
+		cmds.setAttr('{}.visibility'.format(ik_distance), 0)
 				
 		# stretchy math
 		joints_for_distance = cmds.listRelatives (base_joint, ad = True, typ = 'joint')
@@ -284,24 +286,72 @@ class Kinematics_class(tools.Tools_class):
 
 		#Connect To Distance
 		md0 = self.connect_md_node(in_x1 = str(distance)+'.distance', in_x2 = total_distance, out_x = str(contidion_node)+'.colorIfTrueR', mode = 'divide', name = '')		
-		md1 = self.connect_md_node(in_x1 = str(contidion_node)+'.outColorR', in_x2 = cmds.getAttr(str(ik_joints[1])+'.translateX'), out_x = str(ik_joints[1])+'.translateX', mode = 'mult', name = '')
-		md2 = self.connect_md_node(in_x1 = str(contidion_node)+'.outColorR', in_x2 = cmds.getAttr(str(ik_joints[0])+'.translateX'), out_x = str(ik_joints[0])+'.translateX', mode = 'mult', name = '')
-		md3 = self.connect_md_node(in_x1 = str(distance)+'.distance', in_x2 = stretch_Attr, out_x = str(contidion_node)+'.firstTerm', mode = 'mult', name = '')
-		print (md0,md1,md2,md3)
+		
+		#connect to joints
+		md1 = self.connect_md_node(in_x1 = str(contidion_node)+'.outColorR', in_x2 = cmds.getAttr(str(ik_joints[1])+'.scale{}'.format(axis)), out_x = str(ik_joints[1])+'.scale{}'.format(axis), mode = 'mult', name = '{}_NewScale'.format(ik_joints[1]))
+		md2 = self.connect_md_node(in_x1 = str(contidion_node)+'.outColorR', in_x2 = cmds.getAttr(str(ik_joints[2])+'.scale{}'.format(axis)), out_x = str(ik_joints[2])+'.scale{}'.format(axis), mode = 'mult', name = '{}_NewScale'.format(ik_joints[2]))
+		
+		md3 = self.connect_md_node(in_x1 = str(distance)+'.distance', in_x2 = stretch_Attr, out_x = str(contidion_node)+'.firstTerm', mode = 'mult', name = '{}_TotalDistance'.format(name))
+		print (md0,md1,md2, md3)
 
 		#normalize stretch
 		normalize_loc = cmds.spaceLocator(n = name + '_NormalScale' + nc['locator'])[0]
-		normal_md = self.connect_md_node( in_x1 = str(distance)+'.distance', in_x2 = str(normalize_loc) + '.scaleX', out_x = md0 + '.input1X', mode = 'divide', name = '', force = True)
+		normal_md = self.connect_md_node( in_x1 = str(distance)+'.distance', in_x2 = str(normalize_loc) + '.scaleX', out_x = md0 + '.input1X', mode = 'divide', name = '{}_Normalize'.format(distance), force = True)
 		cmds.connectAttr(normal_md + '.outputX', md3 + '.input1X', f=True)
 
-		#elbow/knee lock
-		lock_Attr = self.new_attr(input= attrs_location, name = 'Pole_Vector_Lock', min = 0 , max = 1, default = 0)
+		#manual change the sacles mult
+		lower_attr = self.new_attr(input= attrs_location, name = 'Lower_Lenght', min = 0 , max = 2, default = 1)
+		upper_attr = self.new_attr(input= attrs_location, name = 'Upper_Lenght', min = 0 , max = 2, default = 1)
+		cmds.connectAttr(lower_attr, md2 + '.input2X', f=True)
+		cmds.connectAttr(upper_attr, md1 + '.input2X', f=True)
+		 		
+		#elbow/knee lock #a bit hard coded bit it is what it is
+		lock_attr = self.new_attr(input= attrs_location, name = 'Pole_Vector_Lock', min = 0 , max = 1, default = 0)
 
+		upper_lock_blend = cmds.shadingNode('blendColors', asUtility=True, n = '{}_Lock{}'.format(ik_joints[1], nc['blend']))
+		cmds.connectAttr(lock_attr, '{}.blender'.format(upper_lock_blend))
+		cmds.connectAttr('{}.output.outputR'.format(upper_lock_blend), str(ik_joints[2])+'.scale{}'.format(axis), f=True)
+		cmds.connectAttr('{}.outputX'.format(md1),'{}.color2.color2R'.format(upper_lock_blend), f=True)
 
+		lower_lock_blend = cmds.shadingNode('blendColors', asUtility=True, n = '{}_Lock{}'.format(ik_joints[2], nc['blend']))
+		cmds.connectAttr(lock_attr, '{}.blender'.format(lower_lock_blend))
+		cmds.connectAttr('{}.output.outputR'.format(lower_lock_blend), str(ik_joints[1])+'.scale{}'.format(axis) , f=True)
+		cmds.connectAttr('{}.outputX'.format(md2),'{}.color2.color2R'.format(lower_lock_blend), f=True)
 
-		return (normalize_loc, start_loc, end_loc, pv_loc)
+		#connect lock pole vectors distance to normalize too
+		cmds.connectAttr(str(top_distance)+'.distance', normal_md + '.input1Y')
+		cmds.connectAttr(str(ik_distance)+'.distance', normal_md + '.input1Z')
 		
-#----------------------------------------------------------------------------------------------------------------
+		self.connect_md_node(in_x1 = normal_md + '.outputY', in_x2 = cmds.getAttr(str(ik_joints[0])+'.translateX'), out_x = lower_lock_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+		self.connect_md_node(in_x1 = normal_md + '.outputZ', in_x2 = cmds.getAttr(str(ik_joints[1])+'.translateX'), out_x = upper_lock_blend + '.color1.color1R', mode = 'divide', name = '{}_UpLock_PV'.format(name))
+		
+		#volume preservation
+		volume_attr = self.new_attr(input= attrs_location, name = 'Volume', min = 0 , max = 1, default = float(setup['volume_preservation']))
+
+		upper_volume_blend = cmds.shadingNode('blendColors', asUtility=True, n = '{}_Volume{}'.format(ik_joints[2], nc['blend']))
+		lower_volume_blend = cmds.shadingNode('blendColors', asUtility=True, n = '{}_Volume{}'.format(ik_joints[1], nc['blend']))
+		cmds.setAttr('{}.color2.color2R'.format(upper_volume_blend), 1) 
+		cmds.setAttr('{}.color2.color2R'.format(lower_volume_blend), 1) 
+
+		cmds.connectAttr(volume_attr, '{}.blender'.format(upper_volume_blend))
+		cmds.connectAttr(volume_attr, '{}.blender'.format(lower_volume_blend))
+
+		self.connect_md_node(in_x1 = 1, in_x2 = upper_lock_blend+ '.color1.color1R', out_x = upper_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+		self.connect_md_node(in_x1 = 1, in_x2 = lower_lock_blend+ '.color1.color1R', out_x = lower_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+
+		volume_axis = ['X','Y','Z']
+		volume_axis.remove(axis)
+		#str(ik_joints[2])+'.scale{}'.format(axis)
+		for scale_axis in volume_axis:
+			cmds.connectAttr('{}.output.outputR'.format(lower_volume_blend), str(ik_joints[2])+'.scale{}'.format(scale_axis))
+			cmds.connectAttr('{}.output.outputR'.format(lower_volume_blend), str(ik_joints[1])+'.scale{}'.format(scale_axis))
+
+		#organize
+
+
+		return (normalize_loc, start_loc, end_loc, pv_loc, distance, top_distance, ik_distance)
+		
+	#----------------------------------------------------------------------------------------------------------------
 
 	def simple_ik_chain(self, start = '', end = '', size = 1, color = setup['main_color'], ik_curve = setup['ik_ctrl'], pv_curve = setup['pv_ctrl'], pv = True, top_curve = setup['top_ik_ctrl']):
 		'''
@@ -316,7 +366,7 @@ class Kinematics_class(tools.Tools_class):
 		ik_system = []
 
 		#create Ik Chain
-		ik_handle = cmds.ikHandle (n = '{}{}'.format(end, nc['ik_rp']), sj=start, ee= end, sol = 'ikRPsolver')
+		ik_handle = cmds.ikHandle (n = '{}{}'.format(end.replace(nc['joint'], ''), nc['ik_rp']), sj=start, ee= end, sol = 'ikRPsolver')
 		cmds.rename(ik_handle[1],'{}{}'.format(end, nc['effector']))
 		ik_handle = ik_handle[0]
 
@@ -382,7 +432,7 @@ class Kinematics_class(tools.Tools_class):
 
 		return ik_system
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	def joints_middle(self, start = '', end = '', axis = setup['twist_axis'], amount = 4):
 		'''

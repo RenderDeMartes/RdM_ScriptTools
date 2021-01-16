@@ -1,4 +1,23 @@
 {
+   "main_grp" : "RdM_Tools_V3_Rig",
+
+   "base_groups": {
+               "geometry" : "Geo",
+               "control" : "Ctrl",
+               "rig" : "Rig"  
+                },
+
+   "geo_groups": {
+               "render_geo" : "Render_Geo"
+               },
+
+   "rig_groups": {
+                "bind_joints" : "Bind_Joints",
+                "bind_geo" : "Bind_Geo",
+                "modules" : "Modules",
+                "misc" : "Miscellaneous",
+                "template" : "Template"
+               },
 
    "right_color" : "red",
    "left_color" : "relightd",
@@ -22,5 +41,7 @@
    "twist_axis_arms" : "X",
    "twist_axis_legs" : "X",
 
-   "stretch_default":"1"
+   "stretch_default":"1",
+   "volume_preservation":"0.5"
+
 }
