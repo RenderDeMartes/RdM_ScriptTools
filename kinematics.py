@@ -790,3 +790,5 @@ class Kinematics_class(tools.Tools_class):
 #podemos usar el twist viejo y sacar los joints y el ik de la jerarquia directa, hacemos grupo y aprent del joint uno al grupo y luego del joint 2 al ik
 #if down: meter joints, ik y locator wn un grupo y del joint te arriba parent constraint al grupo
 #hacer el grupo para todos y el driver es el que lo controla, en upper es el top ik y en lower es el joint de arriba
+
+#locator, joints y noTwist ik Handle = new grp
