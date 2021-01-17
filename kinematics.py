@@ -132,7 +132,7 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def pole_vector(self, bone_one = '', bone_two = '', bone_three = '',back_distance = 1):
+	def pole_vector_placement(self, bone_one = '', bone_two = '', bone_three = '',back_distance = 1):
 		'''
 		finds correct position of the pole vector for the ik and create a locator for it
 		'''
@@ -392,8 +392,8 @@ class Kinematics_class(tools.Tools_class):
 		if (pv):
 
 			#create pole vector in correct position
-			pv_loc = self.pole_vector(bone_one = start, bone_two = cmds.listRelatives(end, p = True), bone_three = end)
-			
+			pv_loc = self.pole_vector_placement(bone_one = start, bone_two = cmds.listRelatives(end, p = True), bone_three = end)
+     
 			#create controller in position with offset grp
 			pv_ctrl = self.curve(type = pv_curve, rename = False, custom_name = True, name = '{}{}{}'.format(end,nc ['pole_vector'], nc ['ctrl']), size = size/2)
 			pv_ctrl = cmds.rename(pv_ctrl, pv_ctrl.replace(nc['joint'],''))
@@ -706,6 +706,12 @@ class Kinematics_class(tools.Tools_class):
 		ik_system = self.simple_ik_chain(start = ik_joints[0], end = ik_joints[-1], size = size, color = color, pv = True)
 		print ('IK = {}'.format(ik_system))
 
+		#correct pv placement
+		pv_distance = cmds.getAttr('{}.translate{}'.format(mid, twist_axis))
+		print (pv_distance)
+		cmds.select(cmds.listRelatives(ik_system[1], p=True))  
+		cmds.move(pv_distance*1.5, 0, 0 , r=1, os=1, wd=1) 
+		
 		#add ik group to return groups
 		return_groups.append(cmds.listRelatives(ik_system[0], p =True)[0])
 		return_groups.append(cmds.listRelatives(ik_system[2], p =True)[0])
@@ -792,3 +798,4 @@ class Kinematics_class(tools.Tools_class):
 #hacer el grupo para todos y el driver es el que lo controla, en upper es el top ik y en lower es el joint de arriba
 
 #locator, joints y noTwist ik Handle = new grp
+#offset grp a locator pata buen twist con ejes y & z
