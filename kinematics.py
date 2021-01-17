@@ -594,6 +594,7 @@ class Kinematics_class(tools.Tools_class):
 		cmds.pointConstraint(end, ik, mo=False)
 
 		cmds.orientConstraint(start, loc, mo=True)[0]
+		cmds.pointConstraint(start, loc, mo=True)[0]
 		
 		#cmds.setAttr(twist_root + '.ro', 3)
 		# Offset Grps.
@@ -627,7 +628,8 @@ class Kinematics_class(tools.Tools_class):
 			twist_reader = self.twist_rotate_info(start=end, end=start)
 
 		twist_locator = twist_reader['locator']
-		
+		twist_loc_grp = self.root_grp()
+
 		#Create twist grps
 		#create jnts in the middle
 		twist_joints = self.joints_middle(start = start, end = end, axis = axis, amount = amount)
@@ -642,8 +644,15 @@ class Kinematics_class(tools.Tools_class):
 		cmds.connectAttr('{}.rotate{}'.format(twist_locator,axis),'{}.twist'.format(ik_spline['ikHandle'])) 
 		
 		cmds.setAttr('{}.visibility'.format(twist_reader['twist_grp']), 0)
-		print (twist_reader)
-		twist_grp = cmds.group(twist_joints[0],crv, ik_spline['ikHandle'],twist_locator, twist_reader['ik'], twist_reader['twist_grp'] , n = '{}_{}_Twist{}'.format(start,end,nc['group']))
+		twist_grp = cmds.group(twist_joints[0],crv, ik_spline['ikHandle'],twist_loc_grp, twist_reader['ik'] , n = '{}_{}_Twist{}'.format(start,end,nc['group']))
+		
+		#driver for twisting correctly
+		if driver:
+			##locator, joints y noTwist ik Handle = new grp
+			driven_grp = cmds.group(twist_loc_grp, twist_reader['ik'], n = '{}_Twist_{}'.format(driver, nc['group']))
+			cmds.parentConstraint(driver, driven_grp, mo=True)
+			cmds.parent(twist_joints[0], driven_grp)
+
 		return {'twist_grp':twist_grp,'no_twist_grp': twist_reader['twist_grp'], 'joints':twist_joints, 'curve':crv}
 
 #----------------------------------------------------------------------------------------------------------------
@@ -770,9 +779,9 @@ class Kinematics_class(tools.Tools_class):
 		#add the twists
 		main_joints = ik_fk[0]
 
-		upper_twist = self.advance_twist(main_joints[0],main_joints[1],mode = 'up', axis = twist_axis)
-		lower_twist = self.advance_twist(main_joints[1],main_joints[2],mode = 'down', axis = twist_axis)
-
+		upper_twist = self.advance_twist(main_joints[0],main_joints[1],mode = 'up', axis = twist_axis, driver = start)
+		lower_twist = self.advance_twist(main_joints[1],main_joints[2],mode = 'down', axis = twist_axis, driver = upper_twist['joints'][-1])
+		
 		print (upper_twist)
 
 		#skin cluster a curva y parent constraint a No twist Offset Grp

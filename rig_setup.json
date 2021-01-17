@@ -35,7 +35,7 @@
 
    "line_width" : "2",
    
-   "twist_axis" : "Y",
+   "twist_axis" : "X",
    "twist_axis_head" : "X",
    "twist_axis_spine" : "X",
    "twist_axis_arms" : "X",
