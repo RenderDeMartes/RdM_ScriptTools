@@ -631,16 +631,20 @@ class Kinematics_class(tools.Tools_class):
 		#Create twist grps
 		#create jnts in the middle
 		twist_joints = self.joints_middle(start = start, end = end, axis = axis, amount = amount)
-		cmds.parentConstraint(start, twist_joints[0], mo=True)
+		if mode == 'down':
+			cmds.parentConstraint(end, twist_joints[0], mo=True)
+		else:
+			cmds.parentConstraint(start, twist_joints[0], mo=True)
 		#connect twist locator to joints using ik spline twist attr
 		crv = self.curve_between(start=start, end=end)
 		ik_spline = self.create_ik_spline_twist(start=twist_joints[0], end=twist_joints[-1], curve=crv)
 
 		cmds.connectAttr('{}.rotate{}'.format(twist_locator,axis),'{}.twist'.format(ik_spline['ikHandle'])) 
 		
+		cmds.setAttr('{}.visibility'.format(twist_reader['twist_grp']), 0)
 		print (twist_reader)
 		twist_grp = cmds.group(twist_joints[0],crv, ik_spline['ikHandle'],twist_locator, twist_reader['ik'], twist_reader['twist_grp'] , n = '{}_{}_Twist{}'.format(start,end,nc['group']))
-		return {'twist_grp':twist_grp, 'joints':twist_joints, 'curve':crv}
+		return {'twist_grp':twist_grp,'no_twist_grp': twist_reader['twist_grp'], 'joints':twist_joints, 'curve':crv}
 
 #----------------------------------------------------------------------------------------------------------------
 
@@ -762,9 +766,27 @@ class Kinematics_class(tools.Tools_class):
 
 		upper_twist = self.advance_twist(main_joints[0],main_joints[1],mode = 'up', axis = twist_axis)
 		lower_twist = self.advance_twist(main_joints[1],main_joints[2],mode = 'down', axis = twist_axis)
-		print upper_twist
+
+		print (upper_twist)
 
 		#skin cluster a curva y parent constraint a No twist Offset Grp
-		
+		cmds.skinCluster(main_joints[0], upper_twist['curve'], tsb=True)
+		cmds.skinCluster(main_joints[1], lower_twist['curve'], tsb=True)
 
-		return ik_fk
+		cmds.parentConstraint(main_joints[0],upper_twist['no_twist_grp'] ,mo=True)
+		cmds.parentConstraint(main_joints[1],lower_twist['no_twist_grp'] ,mo=True)
+
+		#connect scale to twist joints
+		for jnt in upper_twist['joints']:
+			cmds.connectAttr('{}.scale'.format(main_joints[0]), '{}.scale'.format(jnt))
+		for jnt in lower_twist['joints']:
+			cmds.connectAttr('{}.scale'.format(main_joints[1]), '{}.scale'.format(jnt))
+
+		return {'ik_fk':ik_fk}
+
+
+#####
+# Cuando el twist esta en modo down, hace un twist down y uno up y le hace el average
+#podemos usar el twist viejo y sacar los joints y el ik de la jerarquia directa, hacemos grupo y aprent del joint uno al grupo y luego del joint 2 al ik
+#if down: meter joints, ik y locator wn un grupo y del joint te arriba parent constraint al grupo
+#hacer el grupo para todos y el driver es el que lo controla, en upper es el top ik y en lower es el joint de arriba
