@@ -513,7 +513,7 @@ class Tools_class:
 		return return_list[-1]
 	#----------------------------------------------------------------------------------------------------------------
 
-	def bounding_cube(self, input = '', size = 1, name = ''):
+	def bounding_cube(self, input = '', size = 1, name = '', axis = setup['twist_axis']):
 		'''
 		create a ctrl cube with coverage for the full limb, so its like a bounding box in lenght
 		'''
@@ -544,12 +544,24 @@ class Tools_class:
 		#move vertex to start and move vertex to finish
 		#input_position = cmds.xform(original, q = True, m= True, ws = True)
 		#input_child_position = cmds.xform(children, q = True, m= True, ws = True)
-
+		
 		#createl cluster per side to locate them
-		cmds.select('{}.cv[0]'.format(cube),'{}.cv[3:5]'.format(cube),'{}.cv[11:12]'.format(cube), '{}.cv[14:15]'.format(cube))
-		up_side = cmds.cluster()
-		cmds.select('{}.cv[1:2]'.format(cube),'{}.cv[6:10]'.format(cube),'{}.cv[13]'.format(cube))
-		down_side = cmds.cluster()
+		#make sure it works on any axis
+		if axis == 'X':
+			cmds.select('{}.cv[0]'.format(cube),'{}.cv[3:5]'.format(cube),'{}.cv[11:12]'.format(cube), '{}.cv[14:15]'.format(cube))
+			up_side = cmds.cluster()
+			cmds.select('{}.cv[1:2]'.format(cube),'{}.cv[6:10]'.format(cube),'{}.cv[13]'.format(cube))
+			down_side = cmds.cluster()
+		elif axis == 'Y':
+			cmds.select('{}.cv[5:6]'.format(cube),'{}.cv[9:14]'.format(cube))
+			up_side = cmds.cluster()
+			cmds.select('{}.cv[0:4]'.format(cube),'{}.cv[7:8]'.format(cube),'{}.cv[15]'.format(cube))
+			down_side = cmds.cluster()			
+		else: 
+			cmds.select('{}.cv[2:3]'.format(cube),'{}.cv[8:9]'.format(cube),'{}.cv[11:12]'.format(cube), '{}.cv[12:15]'.format(cube))
+			up_side = cmds.cluster()
+			cmds.select('{}.cv[0:1]'.format(cube),'{}.cv[4:7]'.format(cube),'{}.cv[10:11]'.format(cube))
+			down_side = cmds.cluster()	
 
 		#move locator to correct pos
 		self.match(up_side, original, r = False)
@@ -558,6 +570,7 @@ class Tools_class:
 		else:
 			self.match(down_side, children, r = False)
 
+		#delete history
 		cmds.delete(cube, ch = True)
 
 		#return the cube

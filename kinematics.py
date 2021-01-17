@@ -77,7 +77,7 @@ with open(SETUP_FILE) as setup_file:
 
 class Kinematics_class(tools.Tools_class):
 	
-	def fk_chain(self, size = 1, color = setup['main_color'], curve_type = setup['fk_ctrl'], scale = True) :
+	def fk_chain(self, size = 1, color = setup['main_color'], curve_type = setup['fk_ctrl'], scale = True, twist_axis = setup['twist_axis']) :
 		'''
 		create a FK Chain with selected joints, settings can be change in the setup json file
 		'''
@@ -98,11 +98,13 @@ class Kinematics_class(tools.Tools_class):
 			#Create controller and groups to zero it
 			#fk_controller = cmds.circle( n = '{}{}'.format(bone,nc['ctrl']) , nr = (1,0,0), r = size)[0]
 			if curve_type == 'bounding_cube':
-				fk_controller = self.bounding_cube(input = bone, size = size, name =  '{}{}'.format(bone,nc['ctrl']))
-				fk_controller = cmds.rename(fk_controller, fk_controller.replace(nc['joint'],''))
+				fk_controller = self.bounding_cube(input = bone, size = size, name =  '{}{}'.format(bone,nc['ctrl']), axis = twist_axis)
 			else:
 				fk_controller = self.curve(type = curve_type, custom_name = True, name = '{}{}'.format(bone,nc['ctrl']), size = size)
+
+			if nc['joint'] in str(fk_controller):
 				fk_controller = cmds.rename(fk_controller, fk_controller.replace(nc['joint'],''))
+
 
 			cmds.delete(cmds.parentConstraint(bone, fk_controller)) #put the controller in position
 
@@ -197,7 +199,7 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def streatchy_ik(self, ik = '', ik_ctrl= '', top_ctrl = '', pv_ctrl = '', attrs_location = '', name = '', axis = 'X'):
+	def streatchy_ik(self, ik = '', ik_ctrl= '', top_ctrl = '', pv_ctrl = '', attrs_location = '', name = '', axis = 'Y'):
 		
 		'''
 		create a ik stretchy system for the simple ik chain (only 3 joints allowed)
@@ -259,7 +261,7 @@ class Kinematics_class(tools.Tools_class):
 		total_distance = 0
 		
 		for joint in joints_for_distance:
-			current_distance = cmds.getAttr (joint + str ('.translateX'))   
+			current_distance = cmds.getAttr (joint + str ('.translate'+ axis))   
 			total_distance = total_distance + current_distance  
 			
 			
@@ -278,7 +280,7 @@ class Kinematics_class(tools.Tools_class):
 			except:pass
 		
 		stretch_Attr = self.new_attr(input= attrs_location, name = 'Stretch_On', min = 0 , max = 1, default = int(setup['stretch_default']))
-
+		
 		#IK Stretchy Nodes and Connections from RdM2 
 		contidion_node = cmds.shadingNode('condition', asUtility=True, n= end_joint[0]+nc['condition'])
 		cmds.setAttr(str(contidion_node)+".operation", 2)
@@ -322,8 +324,8 @@ class Kinematics_class(tools.Tools_class):
 		cmds.connectAttr(str(top_distance)+'.distance', normal_md + '.input1Y')
 		cmds.connectAttr(str(ik_distance)+'.distance', normal_md + '.input1Z')
 		
-		self.connect_md_node(in_x1 = normal_md + '.outputY', in_x2 = cmds.getAttr(str(ik_joints[0])+'.translateX'), out_x = lower_lock_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
-		self.connect_md_node(in_x1 = normal_md + '.outputZ', in_x2 = cmds.getAttr(str(ik_joints[1])+'.translateX'), out_x = upper_lock_blend + '.color1.color1R', mode = 'divide', name = '{}_UpLock_PV'.format(name))
+		self.connect_md_node(in_x1 = normal_md + '.outputY', in_x2 = cmds.getAttr(str(ik_joints[0])+'.translate'+ axis), out_x = lower_lock_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+		self.connect_md_node(in_x1 = normal_md + '.outputZ', in_x2 = cmds.getAttr(str(ik_joints[1])+'.translate'+ axis), out_x = upper_lock_blend + '.color1.color1R', mode = 'divide', name = '{}_UpLock_PV'.format(name))
 		
 		#volume preservation
 		volume_attr = self.new_attr(input= attrs_location, name = 'Volume', min = 0 , max = 1, default = float(setup['volume_preservation']))
@@ -336,20 +338,21 @@ class Kinematics_class(tools.Tools_class):
 		cmds.connectAttr(volume_attr, '{}.blender'.format(upper_volume_blend))
 		cmds.connectAttr(volume_attr, '{}.blender'.format(lower_volume_blend))
 
-		self.connect_md_node(in_x1 = 1, in_x2 = upper_lock_blend+ '.color1.color1R', out_x = upper_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
-		self.connect_md_node(in_x1 = 1, in_x2 = lower_lock_blend+ '.color1.color1R', out_x = lower_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+		self.connect_md_node(in_x1 = 1, in_x2 = upper_lock_blend+ '.output.outputR',out_x = upper_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
+		self.connect_md_node(in_x1 = 1, in_x2 = lower_lock_blend+ '.output.outputR', out_x = lower_volume_blend+ '.color1.color1R', mode = 'divide', name = '{}_DownLock_PV'.format(name))
 
 		volume_axis = ['X','Y','Z']
 		volume_axis.remove(axis)
 		#str(ik_joints[2])+'.scale{}'.format(axis)
 		for scale_axis in volume_axis:
-			cmds.connectAttr('{}.output.outputR'.format(lower_volume_blend), str(ik_joints[2])+'.scale{}'.format(scale_axis))
-			cmds.connectAttr('{}.output.outputR'.format(lower_volume_blend), str(ik_joints[1])+'.scale{}'.format(scale_axis))
+			cmds.connectAttr('{}.output.outputR'.format(upper_volume_blend), str(ik_joints[2])+'.scale{}'.format(scale_axis))
+			cmds.connectAttr('{}.output.outputR'.format(upper_volume_blend), str(ik_joints[1])+'.scale{}'.format(scale_axis))
 
 		#organize
+		ik_grp = cmds.group(top_distance, ik_distance, distance,start_loc, end_loc, pv_loc ,normalize_loc , n = '{}_Stretchy{}'.format(ik, nc['group']))
+		cmds.setAttr('{}.visibility'.format(ik_grp), 0)
 
-
-		return (normalize_loc, start_loc, end_loc, pv_loc, distance, top_distance, ik_distance)
+		return (ik_grp, normalize_loc, start_loc, end_loc, pv_loc, distance, top_distance, ik_distance)
 		
 	#----------------------------------------------------------------------------------------------------------------
 
@@ -459,15 +462,18 @@ class Kinematics_class(tools.Tools_class):
 				cmds.parent(middle_joint,'{}_Twist_{}{}'.format(start,i - 1, nc['joint']))
 			
 			else:
-				cmds.parent(middle_joint, start)
+				try:cmds.parent(middle_joint, w=True)
+				except:pass
 
 		#Position joints in correct the spot... 
 		
 		for jnt in middle_joints:
-			cmds.setAttr('{}.translate{}'.format(jnt, axis), cmds.getAttr('{}.translate{}'.format(end, axis))/ (amount -1 ))
+			if jnt != middle_joints[0]:	
+				cmds.setAttr('{}.translate{}'.format(jnt, axis), cmds.getAttr('{}.translate{}'.format(end, axis))/ (amount -1 ))
 
-		cmds.setAttr('{}.translate{}'.format(middle_joints[0], axis), 0)
+		#cmds.setAttr('{}.translate{}'.format(middle_joints[0], axis), 0)
 
+	
 		return middle_joints
 
 #----------------------------------------------------------------------------------------------------------------
@@ -621,24 +627,24 @@ class Kinematics_class(tools.Tools_class):
 			twist_reader = self.twist_rotate_info(start=end, end=start)
 
 		twist_locator = twist_reader['locator']
-
+		
 		#Create twist grps
 		#create jnts in the middle
 		twist_joints = self.joints_middle(start = start, end = end, axis = axis, amount = amount)
-		#parent to upnode in hierarchy if possible
-		try:cmds.parent(twist_joints[0], cmds.listRelatives(start, p = True))
-		except:cmds.parent(twist_joints[0],w = True)
-
+		cmds.parentConstraint(start, twist_joints[0], mo=True)
 		#connect twist locator to joints using ik spline twist attr
 		crv = self.curve_between(start=start, end=end)
 		ik_spline = self.create_ik_spline_twist(start=twist_joints[0], end=twist_joints[-1], curve=crv)
 
 		cmds.connectAttr('{}.rotate{}'.format(twist_locator,axis),'{}.twist'.format(ik_spline['ikHandle'])) 
-
+		
+		print (twist_reader)
+		twist_grp = cmds.group(twist_joints[0],crv, ik_spline['ikHandle'],twist_locator, twist_reader['ik'], twist_reader['twist_grp'] , n = '{}_{}_Twist{}'.format(start,end,nc['group']))
+		return {'twist_grp':twist_grp, 'joints':twist_joints, 'curve':crv}
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def simple_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method']):
+	def simple_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method'], twist_axis = setup['twist_axis']):
 		'''
 		create a ik fk chain with a switch for 3 joints
 		'''
@@ -734,7 +740,7 @@ class Kinematics_class(tools.Tools_class):
 			self.connect_rotate_order(input = main, object = '{}_Switch_Loc'.format(start))
 	
 		#create ik stretchy system
-		ik_stretch = self.streatchy_ik(ik = ik_system[3], ik_ctrl= ik_system[0], top_ctrl = ik_system[2], pv_ctrl = ik_system[1], attrs_location = '{}_Switch_Loc'.format(start), name = '')
+		ik_stretch = self.streatchy_ik(ik = ik_system[3], ik_ctrl= ik_system[0], top_ctrl = ik_system[2], pv_ctrl = ik_system[1], attrs_location = '{}_Switch_Loc'.format(start), name = '', axis = twist_axis)
 		ik_system.append(ik_stretch)
 
 		print (main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups)
@@ -742,13 +748,23 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
-	def twist_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method']):
+	def twist_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method'], twist_axis = setup['twist_axis']):
 		
 		'''
 		create a ik fk chain with a switch for 3 joints, includes the twist information so is a full limb module
 		'''
 
 		#create basic ik fk system
-		self.simple_fk_ik(start = start, mid = mid, end = end, size = size, color = color, mode = mode)
+		ik_fk = self.simple_fk_ik(start = start, mid = mid, end = end, size = size, color = color, mode = mode, twist_axis = twist_axis)
 
 		#add the twists
+		main_joints = ik_fk[0]
+
+		upper_twist = self.advance_twist(main_joints[0],main_joints[1],mode = 'up', axis = twist_axis)
+		lower_twist = self.advance_twist(main_joints[1],main_joints[2],mode = 'down', axis = twist_axis)
+		print upper_twist
+
+		#skin cluster a curva y parent constraint a No twist Offset Grp
+		
+
+		return ik_fk

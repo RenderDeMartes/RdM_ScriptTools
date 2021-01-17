@@ -85,6 +85,7 @@ class RdM(modules.Modules_class):
 
 		OpenMaya.MGlobal.displayInfo('RdM Tools Verion {}'.format(version))
 
+	
 
 '''
 cmds.progressWindow(edit=True, progress=3, status='Enjoy :)')

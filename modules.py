@@ -106,6 +106,7 @@ class Modules_class(kinematics.Kinematics_class):
 			rig_grp = cmds.group(em=True, n = rig_groups[grp] + nc['group'])
 			cmds.parent(rig_grp, base_groups['rig']+nc['group'])	
 
+		
 		#create the base controllers
 
 #----------------------------------------------------------------------------------------------------------------
