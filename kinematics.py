@@ -132,6 +132,26 @@ class Kinematics_class(tools.Tools_class):
 
 #----------------------------------------------------------------------------------------------------------------
 
+	def invert_fk_chain(self, size = 1, color = setup['main_color'], curve_type = setup['fk_ctrl'], scale = True, twist_axis = setup['twist_axis'], switch = ''):
+
+		#I HAVE NO FUCKING IDEA HOW TO DO THIS!
+
+		fk_ctrls =  self.fk_chain(size = size, color = color, curve_type = curve_type, scale = scale, twist_axis = twist_axis)
+		print (fk_ctrls)
+
+		#forward chain
+		for ctrl in fk_ctrls:
+			try:
+				parent_constraint = cmds.parentConstraint(ctrl, cmds.listRelatives(ctrl, c=True), mo=True)[0]
+				cmds.setAttr('{}.interpType'.format(parent_constraint), 2)
+			except:
+				pass
+
+		#backwards chain
+		
+
+#----------------------------------------------------------------------------------------------------------------
+
 	def pole_vector_placement(self, bone_one = '', bone_two = '', bone_three = '',back_distance = 1):
 		'''
 		finds correct position of the pole vector for the ik and create a locator for it
@@ -302,8 +322,8 @@ class Kinematics_class(tools.Tools_class):
 		cmds.connectAttr(normal_md + '.outputX', md3 + '.input1X', f=True)
 
 		#manual change the sacles mult
-		lower_attr = self.new_attr(input= attrs_location, name = 'Lower_Lenght', min = 0 , max = 2, default = 1)
-		upper_attr = self.new_attr(input= attrs_location, name = 'Upper_Lenght', min = 0 , max = 2, default = 1)
+		lower_attr = self.new_attr(input= attrs_location, name = 'Lower_Length', min = 0.25 , max = 2, default = 1)
+		upper_attr = self.new_attr(input= attrs_location, name = 'Upper_Length', min = 0.25 , max = 2, default = 1)
 		cmds.connectAttr(lower_attr, md2 + '.input2X', f=True)
 		cmds.connectAttr(upper_attr, md1 + '.input2X', f=True)
 		 		
@@ -393,7 +413,7 @@ class Kinematics_class(tools.Tools_class):
 
 			#create pole vector in correct position
 			pv_loc = self.pole_vector_placement(bone_one = start, bone_two = cmds.listRelatives(end, p = True), bone_three = end)
-     
+	 
 			#create controller in position with offset grp
 			pv_ctrl = self.curve(type = pv_curve, rename = False, custom_name = True, name = '{}{}{}'.format(end,nc ['pole_vector'], nc ['ctrl']), size = size/2)
 			pv_ctrl = cmds.rename(pv_ctrl, pv_ctrl.replace(nc['joint'],''))
@@ -687,7 +707,7 @@ class Kinematics_class(tools.Tools_class):
 		else: 
 			end = cmds.rename(end, '{}{}'.format(end,nc['joint']))
 
-		#mange errors if names exists
+		#manage errors if names exists
 		if cmds.objExists(start):
 			#cmds.error('we already have a system with theese names sorry')
 			''
@@ -715,7 +735,7 @@ class Kinematics_class(tools.Tools_class):
 		ik_system = self.simple_ik_chain(start = ik_joints[0], end = ik_joints[-1], size = size, color = color, pv = True)
 		print ('IK = {}'.format(ik_system))
 
-		#correct pv placement
+		#correct pv placement and connect with line
 		pv_distance = cmds.getAttr('{}.translate{}'.format(mid, twist_axis))
 		print (pv_distance)
 		cmds.select(cmds.listRelatives(ik_system[1], p=True))  
@@ -734,7 +754,6 @@ class Kinematics_class(tools.Tools_class):
 			cmds.select(ctrl)
 			if cmds.objectType(ctrl) ==  'transform':
 				switch_attr = self.shape_with_attr(input = '', obj_name = '{}_Switch'.format(start), attr_name = 'Switch_IK_FK')
-
 
 		#create switch ik fk
 		print (switch_attr)
@@ -765,7 +784,7 @@ class Kinematics_class(tools.Tools_class):
 		print (main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups)
 		return main_joints, ik_joints, fk_joints, fk_system, ik_system, return_groups
 
-#----------------------------------------------------------------------------------------------------------------
+	#----------------------------------------------------------------------------------------------------------------
 
 	def twist_fk_ik(self, start = '', mid = '', end = '', size = 1, color = setup['main_color'], mode = setup['ik_fk_method'], twist_axis = setup['twist_axis']):
 		
@@ -797,14 +816,74 @@ class Kinematics_class(tools.Tools_class):
 		for jnt in lower_twist['joints']:
 			cmds.connectAttr('{}.scale'.format(main_joints[1]), '{}.scale'.format(jnt))
 
-		return {'ik_fk':ik_fk}
+		return {'ik_fk':ik_fk,'upper_twist':upper_twist, 'lower_twist':lower_twist}
 
 
-#####
-# Cuando el twist esta en modo down, hace un twist down y uno up y le hace el average
-#podemos usar el twist viejo y sacar los joints y el ik de la jerarquia directa, hacemos grupo y aprent del joint uno al grupo y luego del joint 2 al ik
-#if down: meter joints, ik y locator wn un grupo y del joint te arriba parent constraint al grupo
-#hacer el grupo para todos y el driver es el que lo controla, en upper es el top ik y en lower es el joint de arriba
+	#----------------------------------------------------------------------------------------------------------------
 
-#locator, joints y noTwist ik Handle = new grp
-#offset grp a locator pata buen twist con ejes y & z
+	def hybrid_spline(self, start = '', end = '', size = 1, twist_axis = setup['twist_axis'], mode = setup['ik_fk_method'], ik_amount = 4):
+
+		if start == '':
+			start = cmds.ls(sl=True)[0]
+			end = cmds.ls(sl=True)[-1]
+
+		print ('joints are: {} to {}'.format(start,end))
+
+		
+		#put name conventions to main chain and manage errors
+		if nc['joint'] in str(start):
+			pass
+		else: 
+			start = cmds.rename(start, '{}{}'.format(start,nc['joint']))
+
+		main_joints = [start]
+		for jnt in cmds.listRelatives(start, allDescendents=True):
+			main_joints.append(jnt)
+			if str(jnt).endswith(nc['joint']):
+				pass
+			else:
+				cmds.rename(jnt, '{}{}'.format(jnt,nc['joint']))	
+
+
+		#create ik handle
+		ikSpline = cmds.ikHandle(sj=start,
+								 ee=end,
+								 sol='ikSplineSolver',
+								 n= main_joints[0] + nc['ik_spline'],
+								 ccv=True,
+								 pcv = False)
+
+		spline_curve =  ikSpline[2]
+		spline_curve = cmds.rename(spline_curve, start + nc['curve'])
+		cmds.rebuildCurve(spline_curve, rt=0, ch=0, end=1, d=3, kr=0, s=ik_amount-1, kcp=0, tol=0.01, kt=0, rpo=1, kep=1)
+
+		effector_spline = cmds.rename(ikSpline[1],
+									 start + nc['effector'])
+		ikSpline = ikSpline[0]
+
+
+		#create joints for controlling the chain ik
+		for jnt_num in range(ik_amount):
+			temp_name = filter(lambda c: not c.isdigit(), start)
+			jc = cmds.duplicate(start, po=True, n = temp_name.replace(nc['joint'], '') + str(jnt_num) + nc['joint_ctrl'])
+			
+
+	# FK = IK - 1 
+
+	# FK
+	# FK IK
+	# FK IK
+	# FK IK
+
+
+		'''
+		#create switch ik fk
+		print (switch_attr)
+
+
+		for num, jnt in enumerate(main_joints):
+			if mode == 'blend':
+				self.switch_blend_colors(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
+			else: 
+				self.switch_constraints(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
+		'''
