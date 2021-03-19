@@ -59,6 +59,8 @@ try:
 	reload(kinematics)
 	import modules
 	reload(modules)
+	import blocks
+	reload(blocks)
 except:
 	import RdM_ScriptTools
 	from RdM_ScriptTools import tools

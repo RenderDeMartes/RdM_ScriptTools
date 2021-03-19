@@ -457,7 +457,7 @@ class Kinematics_class(tools.Tools_class):
 
 	#----------------------------------------------------------------------------------------------------------------
 
-	def joints_middle(self, start = '', end = '', axis = setup['twist_axis'], amount = 4):
+	def joints_middle(self, start = '', end = '', axis = setup['twist_axis'], amount = 4, name = 'Twist'):
 		'''
 		create joints in between a joint chain
 		'''
@@ -472,14 +472,14 @@ class Kinematics_class(tools.Tools_class):
 		#create joints in between
 		for i in range(amount):
 			#duplicate joint and delete children
-			middle_joint = cmds.duplicate(start, n = '{}_Twist_{}{}'.format(start,i, nc['joint']), rc = True)[0]
+			middle_joint = cmds.duplicate(start, n = '{}_{}_{}{}'.format(start,name,i, nc['joint']), rc = True)[0]
 			cmds.delete(cmds.listRelatives(middle_joint, c = True))
 
 			middle_joints.append(middle_joint)
 
 			#if the new joint is not the first parent it to the last one
-			if cmds.objExists('{}_Twist_{}{}'.format(start,i - 1, nc['joint'])):
-				cmds.parent(middle_joint,'{}_Twist_{}{}'.format(start,i - 1, nc['joint']))
+			if cmds.objExists('{}_{}_{}{}'.format(start,name,i - 1, nc['joint'])):
+				cmds.parent(middle_joint,'{}_{}_{}{}'.format(start,name,i - 1, nc['joint']))
 			
 			else:
 				try:cmds.parent(middle_joint, w=True)
@@ -495,6 +495,35 @@ class Kinematics_class(tools.Tools_class):
 
 	
 		return middle_joints
+
+#----------------------------------------------------------------------------------------------------------------
+	def joints_middle_no_chain(self, start = '', end='', axis = setup['twist_axis'], amount = 3, name = 'Mid'):
+
+		'''
+		this will create joints in the middle of 2 selected objects but with out a Hy
+		'''
+
+		if start == '':
+			start = cmds.ls(sl =True)[0]
+		if end == '':
+			end = cmds.ls(sl =True)[-1]
+
+		if name == '':
+			name = str(start).replace(nc['joint'],'') + '_Mid' + nc['joint']
+
+		end_parent = cmds.listRelatives(end, p =True)			
+		cmds.parent(end, start)
+
+		mid_joints = self.joints_middle(start = start, end = end, axis = axis, amount = amount, name = name)
+		cmds.parent(end, end_parent)
+
+		for jnt in mid_joints:
+			try:cmds.parent(jnt, w=True)
+			except:pass
+		
+		return mid_joints
+
+		#self.match(mid_joints[-1], end)
 
 #----------------------------------------------------------------------------------------------------------------
 
@@ -803,7 +832,7 @@ class Kinematics_class(tools.Tools_class):
 		
 		print (upper_twist)
 
-		#skin cluster a curva y parent constraint a No twist Offset Grp
+		#skin cluster to curve and parent constraint to No twist Offset Grp
 		cmds.skinCluster(main_joints[0], upper_twist['curve'], tsb=True)
 		cmds.skinCluster(main_joints[1], lower_twist['curve'], tsb=True)
 
@@ -821,7 +850,11 @@ class Kinematics_class(tools.Tools_class):
 
 	#----------------------------------------------------------------------------------------------------------------
 
-	def hybrid_spline(self, start = '', end = '', size = 1, twist_axis = setup['twist_axis'], mode = setup['ik_fk_method'], ik_amount = 4):
+	def base_spline(self, start = '', end = '', size = 1, name = 'Spine', twist_axis = setup['twist_axis'], amount = 5):
+
+		'''
+		select start and end and create a ik fk spline like for a charatcer spine
+		'''
 
 		if start == '':
 			start = cmds.ls(sl=True)[0]
@@ -831,18 +864,26 @@ class Kinematics_class(tools.Tools_class):
 
 		
 		#put name conventions to main chain and manage errors
-		if nc['joint'] in str(start):
+		if str(start).endswith(nc['joint']):
 			pass
 		else: 
 			start = cmds.rename(start, '{}{}'.format(start,nc['joint']))
 
+		if str(end).endswith(nc['joint']):
+			pass
+		else: 
+			end = cmds.rename(end, '{}{}'.format(end,nc['joint']))
+
+
 		main_joints = [start]
 		for jnt in cmds.listRelatives(start, allDescendents=True):
-			main_joints.append(jnt)
+			
 			if str(jnt).endswith(nc['joint']):
 				pass
 			else:
-				cmds.rename(jnt, '{}{}'.format(jnt,nc['joint']))	
+				jnt = cmds.rename(jnt, '{}{}'.format(jnt,nc['joint']))	
+			
+			main_joints.append(jnt)
 
 
 		#create ik handle
@@ -855,35 +896,54 @@ class Kinematics_class(tools.Tools_class):
 
 		spline_curve =  ikSpline[2]
 		spline_curve = cmds.rename(spline_curve, start + nc['curve'])
-		cmds.rebuildCurve(spline_curve, rt=0, ch=0, end=1, d=3, kr=0, s=ik_amount-1, kcp=0, tol=0.01, kt=0, rpo=1, kep=1)
+		spline_curve = cmds.rebuildCurve(spline_curve, ch =  True,  rpo = True, rt = False, end =True, kr = False, kcp = False, kep = True , kt =False, s = amount-1, d = 3, tol = 0.01)
 
 		effector_spline = cmds.rename(ikSpline[1],
 									 start + nc['effector'])
 		ikSpline = ikSpline[0]
 
+		#create joints for twisting the chain ik
+		twist_ik_joints = self.joints_middle_no_chain(start = start, end=end, axis = twist_axis, amount = 2, name = 'Twist')
 
 		#create joints for controlling the chain ik
-		for jnt_num in range(ik_amount):
-			temp_name = filter(lambda c: not c.isdigit(), start)
-			jc = cmds.duplicate(start, po=True, n = temp_name.replace(nc['joint'], '') + str(jnt_num) + nc['joint_ctrl'])
+		ik_joints = self.joints_middle_no_chain(start = start, end=end, axis = twist_axis, amount = amount, name = 'Ik')
+		cmds.skinCluster(ik_joints,spline_curve, tsb=True)
 			
+		#create a ctrl for the iks
+		ik_controllers=[]
+		for num, jnt in enumerate(ik_joints):
+			cmds.select(jnt)
+			ik_controller = self.curve(type = setup['ik_ctrl'], size = size, custom_name = True, name = '{}_{}_IK{}'.format(name, num,nc['ctrl']))
+			grp = self.root_grp()
+			self.match(grp, jnt)
+			cmds.parentConstraint(ik_controller, jnt, mo=True)
+			ik_controllers.append(ik_controller)
+		
+		#create FK Controllers that will hold the Ik Controllers
+		#this joints are placeholders
+		temp_fk_joints = self.joints_middle_no_chain(start = start, end=end, axis = twist_axis, amount = amount, name = 'Fk_Temp')
+		fk_controllers = []
+		for num, joint in enumerate(temp_fk_joints):
+			print num, joint
+			cmds.select(cl=True)
+			fk_controller = self.curve(type = setup['spine_fk_ctrl'], size = size, custom_name = True, name = '{}_{}_FK{}'.format(name, num,nc['ctrl']))
+			fk_grp = self.root_grp(fk_controller)
+			self.match(fk_grp, joint,r=False)
+			if len(fk_controllers) > 0:cmds.parent(fk_grp[0], fk_controllers[-1])
+			else:pass 
 
-	# FK = IK - 1 
-
-	# FK
-	# FK IK
-	# FK IK
-	# FK IK
+			#Create Controller List
+			fk_controllers.append(fk_controller)
 
 
-		'''
-		#create switch ik fk
-		print (switch_attr)
+		cmds.delete(temp_fk_joints)
 
+		#put the ik inside the fks
+		for num, ik in enumerate(ik_controllers):
+			cmds.parent(cmds.listRelatives(ik, p=True), fk_controllers[num])
 
-		for num, jnt in enumerate(main_joints):
-			if mode == 'blend':
-				self.switch_blend_colors(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
-			else: 
-				self.switch_constraints(this = fk_joints[num], that = ik_joints[num], main = jnt, attr = switch_attr)
-		'''
+		return fk_controllers, ik_controllers
+
+	#----------------------------------------------------------------------------------------------------------------
+
+	

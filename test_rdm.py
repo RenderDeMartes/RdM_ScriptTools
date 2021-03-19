@@ -15,9 +15,8 @@ rdm = main_rdm.RdM()
 #ikfk = rdm.twist_fk_ik(start = '', mid = '', end = '', size = 3, color = 'red')
 #rdm.twist_rotate_info()
 #rdm.advance_twist(mode = 'down')
-
+#rdm.joints_middle_no_chain()
 #rdm.invert_fk_chain()
-rdm.hybrid_spline()
 #rdm.connect_with_line()
-
+rdm.rig_base_module()
 #rdm.curve(type = 'root')

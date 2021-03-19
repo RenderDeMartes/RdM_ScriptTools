@@ -76,9 +76,15 @@ class Modules_class(kinematics.Kinematics_class):
 
 	def __init__ (self):
 		''
+
 #----------------------------------------------------------------------------------------------------------------
 
-	def rig_base_module(self, name='RdM_Tools_V3', size = 1):
+	def create_block(self, attrs = {'name':''}):
+		''
+
+#----------------------------------------------------------------------------------------------------------------
+
+	def build_base(self, name='RdM_Tools_V3', size = 1):
 		'''
 		This will crate the base structure for any kinf of rig with the same base sctructure
 		'''

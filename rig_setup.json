@@ -14,7 +14,6 @@
    "rig_groups": {
                 "bind_joints" : "Bind_Joints",
                 "bind_geo" : "Bind_Geo",
-                "modules" : "Modules",
                 "misc" : "Miscellaneous",
                 "template" : "Template"
                },
@@ -30,6 +29,7 @@
    "top_ik_ctrl" : "circleX",
 
    "fk_ctrl" : "bounding_cube",
+   "spine_fk_ctrl" : "circleY",
 
    "ik_fk_method" : "blend",
 
