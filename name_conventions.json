@@ -37,5 +37,7 @@
    "condition":"_Condition",
    "blend":"_Blend",
 
-   "connected":"_Connected"
+   "connected":"_Connected",
+
+   "module":"_Blocks"
 }

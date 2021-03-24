@@ -1,5 +1,5 @@
 {
-   "main_grp" : "RdM_Tools_V3_Rig",
+   "main_grp" : "Asset Name",
 
    "base_groups": {
                "geometry" : "Geo",
@@ -17,6 +17,8 @@
                 "misc" : "Miscellaneous",
                 "template" : "Template"
                },
+
+   "main_ctrl_grp":"Rig_Ctrl",
 
    "right_color" : "red",
    "left_color" : "relightd",

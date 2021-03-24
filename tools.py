@@ -261,7 +261,7 @@ class Tools_class:
 	#----------------------------------------------------------------------------------------------------------------					
 
 	# meter size
-	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1, gimbal = False):
+	def curve(self,input = '', type = 'cube', rename = True, custom_name = False, name = '', size = 1):
 		'''
 		create curves shapes based on the curve json file
 		'''
@@ -297,33 +297,9 @@ class Tools_class:
 		#change ctrl line width
 		cmds.setAttr('{}.lineWidth'.format(cmds.listRelatives(ctrl, shapes=True)[0]), int(setup['line_width']))
 
-		#add gimbal
-		if gimbal:
-			#create another cruve based on the original one but with gimbal names and colors 
-			gimbal_ctrl = cmds.duplicate(ctrl, n = '{}'.format(ctrl.replace(nc['ctrl'],nc['gimbal_ctrl'])))[0]
-
-			self.connect_rotate_order(input = gimbal_ctrl, object = gimbal_ctrl)
-			self.asign_color(color = setup['gimbal_color'])
-
-			gimbal_grp = self.root_grp(replace_nc = False)
-			cmds.parent(gimbal_grp, ctrl)
-			cmds.setAttr('{}.lineWidth'.format(cmds.listRelatives(gimbal_ctrl, shapes=True)[0]), int(setup['line_width']))
-
-			#scale a bit smaller
-			for shape in cmds.listRelatives(gimbal_ctrl, shapes=True):
-				cmds.select(cl = True)
-				for cv_num in range(cmds.getAttr('{}.spans'.format(shape))+1):
-					cmds.select('{}.cv[{}]'.format(shape, cv_num), add = True)	
-				cmds.scale(0.9,0.9,0.9)
-
-			#create a visibility attr
-			gimbal_attr = self.new_enum(input= ctrl, name = 'Gimbal', enums = 'Hide:Show')
-			cmds.connectAttr(gimbal_attr, '{}.visibility'.format(shape))
-
-			cmds.select(ctrl, gimbal_ctrl)
-
-			print ('gimbal created')
-
+		try:self.hide_attr(input = ctrl, v=True)
+		except:pass
+		
 		#return last ctrl created
 		return ctrl	
 
